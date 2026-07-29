@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:SimTabBar.Controls"
+             x:Class="SimTabBarDemo.Views.KeyboardPage">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <TextBlock Grid.Row="0" Text="键盘快捷键：Ctrl+Tab / Ctrl+Shift+Tab / Ctrl+F4" FontSize="18" Margin="16,16,16,8" />
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="24" Margin="16,0,16,8">
+            <TextBlock Text="Ctrl+Tab: 下一个" />
+            <TextBlock Text="Ctrl+Shift+Tab: 上一个" />
+            <TextBlock Text="Ctrl+F4: 关闭" />
+        </StackPanel>
+
+        <controls:TabBar Grid.Row="2"
+                          x:Name="KeyboardSimTabBar"
+                          SelectionChanged="OnSelectionChanged"
+                          TabCloseRequested="OnTabCloseRequested"
+                          Margin="16">
+            <controls:TabBarItem Header="Tab 1">
+                <TextBlock Text="Tab 1 content" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="Tab 2">
+                <TextBlock Text="Tab 2 content" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="Tab 3">
+                <TextBlock Text="Tab 3 content" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="Tab 4">
+                <TextBlock Text="Tab 4 content" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="Tab 5">
+                <TextBlock Text="Tab 5 content" Margin="16" />
+            </controls:TabBarItem>
+        </controls:TabBar>
+
+        <ListBox Grid.Row="3"
+                 x:Name="ActionLogList"
+                 Height="120"
+                 Margin="16,8,16,16" />
+    </Grid>
+</UserControl>

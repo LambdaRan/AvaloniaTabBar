@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:SimTabBar.Controls"
+             x:Class="SimTabBarDemo.Views.PinnedTabPage">
+
+    <Grid RowDefinitions="Auto,*">
+        <TextBlock Grid.Row="0" Text="不可关闭标签：IsClosable=false + Cancel 演示" FontSize="18" Margin="16,16,16,8" />
+
+        <controls:TabBar Grid.Row="1"
+                          x:Name="PinnedSimTabBar"
+                          TabCloseRequested="OnTabCloseRequested"
+                          Margin="16">
+
+            <controls:TabBarItem Header="🏠 首页" IsClosable="False">
+                <TextBlock Text="这是固定的首页标签，无法关闭" Margin="16" />
+            </controls:TabBarItem>
+
+            <controls:TabBarItem Header="文档 A">
+                <TextBlock Text="文档 A 内容（可关闭）" Margin="16" />
+            </controls:TabBarItem>
+
+            <controls:TabBarItem Header="文档 B">
+                <TextBlock Text="文档 B 内容（可关闭）" Margin="16" />
+            </controls:TabBarItem>
+
+            <controls:TabBarItem Header="⚠ 需保存">
+                <TextBlock Text="关闭此标签会触发 Cancel 演示" Margin="16" />
+            </controls:TabBarItem>
+
+        </controls:TabBar>
+    </Grid>
+</UserControl>

@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:SimTabBar.Controls"
+             x:Class="SimTabBarDemo.Views.WidthModePage">
+
+    <Grid RowDefinitions="Auto,Auto,*">
+        <TextBlock Grid.Row="0" Text="宽度模式：Equal / SizeToContent / Compact" FontSize="18" Margin="16,16,16,8" />
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="16" Margin="16,0,16,8">
+            <RadioButton Content="Equal" IsChecked="True"
+                         GroupName="WidthMode"
+                         IsCheckedChanged="OnEqualChecked" />
+            <RadioButton Content="SizeToContent"
+                         GroupName="WidthMode"
+                         IsCheckedChanged="OnSizeToContentChecked" />
+            <RadioButton Content="Compact"
+                         GroupName="WidthMode"
+                         IsCheckedChanged="OnCompactChecked" />
+        </StackPanel>
+
+        <controls:TabBar Grid.Row="2"
+                          x:Name="WidthModeSimTabBar"
+                          Margin="16">
+            <controls:TabBarItem Header="Short">
+                <TextBlock Text="Short tab content" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="A Very Long Tab Name">
+                <TextBlock Text="Long name tab content" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="Medium Tab">
+                <TextBlock Text="Medium tab content" Margin="16" />
+            </controls:TabBarItem>
+        </controls:TabBar>
+    </Grid>
+</UserControl>

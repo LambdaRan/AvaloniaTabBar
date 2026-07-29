@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:SimTabBar.Controls"
+             x:Class="SimTabBarDemo.Views.HeaderFooterPage">
+
+    <Grid RowDefinitions="Auto,*">
+        <TextBlock Grid.Row="0" Text="Header/Footer：标签条两侧扩展" FontSize="18" Margin="16,16,16,8" />
+
+        <controls:TabBar Grid.Row="1" Margin="16">
+            <controls:TabBar.TabStripHeader>
+                <TextBlock Text="📎 Logo" VerticalAlignment="Center" Margin="8,0" FontWeight="Bold" />
+            </controls:TabBar.TabStripHeader>
+            <controls:TabBar.TabStripFooter>
+                <TextBox PlaceholderText="搜索..." Width="150" Height="24" FontSize="11"
+                         VerticalAlignment="Center" Margin="4,0" />
+            </controls:TabBar.TabStripFooter>
+
+            <controls:TabBarItem Header="标签 1">
+                <TextBlock Text="Header/Footer 演示 - 标签 1" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="标签 2">
+                <TextBlock Text="Header/Footer 演示 - 标签 2" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="标签 3">
+                <TextBlock Text="Header/Footer 演示 - 标签 3" Margin="16" />
+            </controls:TabBarItem>
+        </controls:TabBar>
+    </Grid>
+</UserControl>

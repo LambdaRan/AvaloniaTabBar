@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:SimTabBar.Controls"
+             xmlns:vm="using:SimTabBarDemo.ViewModels"
+             x:Class="SimTabBarDemo.Views.BindingTabPage"
+             x:DataType="vm:BindingTabViewModel">
+
+    <Grid RowDefinitions="Auto,*">
+        <TextBlock Grid.Row="0" Text="数据绑定：ItemsSource + HeaderMemberPath" FontSize="18" Margin="16,16,16,8" />
+
+        <controls:TabBar Grid.Row="1"
+                          ItemsSource="{Binding Documents}"
+                          SelectedItem="{Binding SelectedDocument}"
+                          HeaderMemberPath="Title"
+                          AddTabButtonCommand="{Binding AddDocumentCommand}"
+                          Margin="16">
+            <controls:TabBar.ContentTemplate>
+                <DataTemplate DataType="vm:DocumentItem">
+                    <StackPanel Margin="16">
+                        <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="Bold" />
+                        <TextBlock Text="{Binding Description}" Margin="0,8,0,0" />
+                    </StackPanel>
+                </DataTemplate>
+            </controls:TabBar.ContentTemplate>
+        </controls:TabBar>
+    </Grid>
+</UserControl>

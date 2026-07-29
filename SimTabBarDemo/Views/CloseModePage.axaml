@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:SimTabBar.Controls"
+             xmlns:vm="using:SimTabBarDemo.ViewModels"
+             x:Class="SimTabBarDemo.Views.CloseModePage">
+
+    <Grid RowDefinitions="Auto,Auto,*">
+        <TextBlock Grid.Row="0" Text="关闭按钮模式：切换查看不同行为" FontSize="18" Margin="16,16,16,8" />
+
+        <StackPanel Grid.Row="1" Spacing="4" Margin="16,0,16,8">
+            <RadioButton Content="Auto — 多标签显示关闭按钮，单标签时隐藏"
+                         IsChecked="True"
+                         GroupName="CloseMode"
+                         IsCheckedChanged="OnAutoChecked" />
+            <RadioButton Content="OnPointerOver — 选中标签始终显示，其余悬停时显示"
+                         GroupName="CloseMode"
+                         IsCheckedChanged="OnPointerOverChecked" />
+            <RadioButton Content="Always — 所有标签始终显示关闭按钮"
+                         GroupName="CloseMode"
+                         IsCheckedChanged="OnAlwaysChecked" />
+        </StackPanel>
+
+        <controls:TabBar Grid.Row="2"
+                          x:Name="CloseModeSimTabBar"
+                          Margin="16">
+            <controls:TabBarItem Header="标签 1">
+                <TextBlock Text="标签 1 内容" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="标签 2">
+                <TextBlock Text="标签 2 内容" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="标签 3">
+                <TextBlock Text="标签 3 内容" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="标签 4">
+                <TextBlock Text="标签 4 内容" Margin="16" />
+            </controls:TabBarItem>
+        </controls:TabBar>
+    </Grid>
+</UserControl>

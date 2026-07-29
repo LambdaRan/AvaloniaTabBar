@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:SimTabBar.Controls"
+             x:Class="SimTabBarDemo.Views.ContextMenuPage">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <TextBlock Grid.Row="0" Text="右键菜单：右击标签查看上下文菜单" FontSize="18" Margin="16,16,16,8" />
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="16" Margin="16,0,16,8">
+            <RadioButton Content="内置默认菜单" IsChecked="True"
+                         GroupName="MenuMode"
+                         IsCheckedChanged="OnDefaultMenuChecked" />
+            <RadioButton Content="自定义菜单"
+                         GroupName="MenuMode"
+                         IsCheckedChanged="OnCustomMenuChecked" />
+            <RadioButton Content="禁用菜单"
+                         GroupName="MenuMode"
+                         IsCheckedChanged="OnDisabledMenuChecked" />
+        </StackPanel>
+
+        <controls:TabBar Grid.Row="2"
+                          x:Name="ContextMenuSimTabBar"
+                          Margin="16"
+                          TabCloseRequested="OnTabCloseRequested">
+            <controls:TabBarItem Header="📌 首页" IsClosable="False">
+                <TextBlock Text="首页（固定标签，不可关闭）" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="文档 1">
+                <TextBlock Text="文档 1 内容 — 右键此标签试试" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="文档 2">
+                <TextBlock Text="文档 2 内容" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="文档 3">
+                <TextBlock Text="文档 3 内容" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="文档 4">
+                <TextBlock Text="文档 4 内容" Margin="16" />
+            </controls:TabBarItem>
+        </controls:TabBar>
+
+        <!-- 操作日志 -->
+        <Border Grid.Row="3" Height="120"
+                BorderBrush="{DynamicResource SimTabBarBottomBorderBrush}"
+                BorderThickness="0,1,0,0">
+            <Grid RowDefinitions="Auto,*">
+                <TextBlock Text="操作日志" FontSize="12" Margin="8,4" FontWeight="Bold" />
+                <ListBox x:Name="ActionLogList" Grid.Row="1" FontSize="11" Margin="4,0" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
