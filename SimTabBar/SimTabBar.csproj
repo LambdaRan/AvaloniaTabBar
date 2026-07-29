@@ -1,13 +1,33 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- NuGet package metadata -->
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>SimTabBar</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>LambdaRan</Authors>
+    <Description>A VS Code-style tab bar control library for Avalonia. Features multiple width modes, close button modes, context menus, keyboard navigation, pinned tabs, and theme support.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/LambdaRan/AvaloniaTabBar</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/LambdaRan/AvaloniaTabBar.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>avalonia;avaloniaui;tabbar;tab;control;ui;xaml</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="12.*" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.*" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
