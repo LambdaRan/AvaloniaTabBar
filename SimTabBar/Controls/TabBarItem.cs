@@ -3,10 +3,13 @@ using Avalonia.Controls;
 using Avalonia.Controls.Metadata;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
+using Avalonia.Data;
+using Avalonia.Data.Converters;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using SimTabBar.Icons;
+using System.Globalization;
 
 namespace SimTabBar.Controls;
 
@@ -16,9 +19,17 @@ namespace SimTabBar.Controls;
 [TemplatePart("PART_CloseButton", typeof(Button))]
 [TemplatePart("PART_ActiveIndicator", typeof(Border))]
 [TemplatePart("PART_Separator", typeof(Border))]
-[PseudoClasses("separator", "compact", "closecollapsed", "closealways", "closeoverlay", "icon")]
+[PseudoClasses(PcSeparator, PcCompact, PcCloseCollapsed, PcCloseAlways, PcCloseOverlay, PcIcon)]
 public class TabBarItem : ContentControl
 {
+    // 伪类名必须以冒号开头，否则样式选择器（如 ^:compact）永远匹配不上。
+    internal const string PcSeparator = ":separator";
+    internal const string PcCompact = ":compact";
+    internal const string PcCloseCollapsed = ":closecollapsed";
+    internal const string PcCloseAlways = ":closealways";
+    internal const string PcCloseOverlay = ":closeoverlay";
+    internal const string PcIcon = ":icon";
+
     public static readonly StyledProperty<object?> HeaderProperty =
         AvaloniaProperty.Register<TabBarItem, object?>(nameof(Header));
 
@@ -45,6 +56,14 @@ public class TabBarItem : ContentControl
     private TextBlock? _compactFallbackTextBlock;
     private string? _cachedCompactFallbackText;
     private bool _showCloseOnHover;
+
+    /// <summary>
+    /// 缓存的父级 TabBar。避免每次指针/属性事件都遍历可视化树。
+    /// </summary>
+    private TabBar? _parentTabBar;
+
+    private IDisposable? _headerBinding;
+    private IDisposable? _iconBinding;
 
     public TabBarItem()
     {
@@ -92,13 +111,25 @@ public class TabBarItem : ContentControl
     static TabBarItem()
     {
         IconSourceProperty.Changed.AddClassHandler<TabBarItem>((x, e) => x.OnIconSourceChanged(e));
-        IsClosableProperty.Changed.AddClassHandler<TabBarItem>((x, e) => {
+        IsClosableProperty.Changed.AddClassHandler<TabBarItem>((x, _) => {
             x.UpdatePseudoClasses();
-            // 通知父级 TabBar，以便它可以重新评估关闭按钮可见性
-            // 在所有标签页中（覆盖模式可能需要覆盖默认状态）。
-            var parentTabBar = x.FindAncestorOfType<TabBar>();
-            parentTabBar?.UpdateAllTabVisuals();
+            // 通知父级 TabBar 重新评估所有标签页的关闭按钮可见性（覆盖模式
+            // 可能需要覆盖默认状态）。走 ScheduleLayoutUpdate 以便批量设置
+            // IsClosable 时合并为一次 O(n) 遍历，而不是每项一次。
+            x._parentTabBar?.ScheduleLayoutUpdate();
         });
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        _parentTabBar = this.FindAncestorOfType<TabBar>();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        _parentTabBar = null;
     }
 
     private void OnIconSourceChanged(AvaloniaPropertyChangedEventArgs e)
@@ -113,7 +144,13 @@ public class TabBarItem : ContentControl
     {
         if (!IsClosable) return;
 
-        var args = new TabBarCloseRequestedEventArgs(DataContext ?? this, this);
+        // Item 的语义由父级 TabBar 决定：ItemsSource 模式下是数据项，
+        // 直接子项模式下是本容器自身。不要用 DataContext —— 在直接子项
+        // 模式下它是从父级继承来的 ViewModel，所有标签页都是同一个对象。
+        var item = (_parentTabBar ?? this.FindAncestorOfType<TabBar>())?.ResolveCloseItem(this)
+                   ?? (object)this;
+
+        var args = new TabBarCloseRequestedEventArgs(item, this);
         args.RoutedEvent = CloseRequestedEvent;
         RaiseEvent(args);
     }
@@ -124,11 +161,15 @@ public class TabBarItem : ContentControl
 
         // 左键单击时选中此标签页（SelectingItemsControl 不会自动选择自定义容器）
         if (IsEnabled && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) {
-            var parentTabBar = this.FindAncestorOfType<TabBar>();
+            var parentTabBar = _parentTabBar;
             if (parentTabBar != null) {
                 int index = parentTabBar.IndexFromContainer(this);
                 if (index >= 0)
                     parentTabBar.SelectedIndex = index;
+
+                // 把键盘焦点移到 TabBar，否则 TabBar.OnKeyDown 收不到事件，
+                // Ctrl+Tab / Ctrl+F4 等内置快捷键将完全失效。
+                parentTabBar.Focus(NavigationMethod.Pointer);
             }
         }
     }
@@ -143,10 +184,10 @@ public class TabBarItem : ContentControl
 
     private void UpdatePseudoClasses()
     {
-        PseudoClasses.Set("icon", _iconElement != null);
+        PseudoClasses.Set(PcIcon, _iconElement != null);
         // 基于 IsClosable 的初始 closecollapsed 状态。
         // 将由父级 TabBar 的 SetCloseButtonState() 根据覆盖模式覆盖。
-        PseudoClasses.Set("closecollapsed", !IsClosable);
+        PseudoClasses.Set(PcCloseCollapsed, !IsClosable);
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -163,6 +204,9 @@ public class TabBarItem : ContentControl
         if (_closeButton != null) {
             _closeButtonClickHandler = (_, _) => RaiseCloseRequested();
             _closeButton.Click += _closeButtonClickHandler;
+            // 新模板部件不知道当前的覆盖模式，恢复上次的可见性决定。
+            _closeButton.IsVisible = !PseudoClasses.Contains(PcCloseCollapsed)
+                                     || PseudoClasses.Contains(PcCloseAlways);
         }
 
         UpdateIconDisplay();
@@ -174,12 +218,23 @@ public class TabBarItem : ContentControl
         if (change.Property == IsSelectedProperty)
             PseudoClasses.Set(":selected", (bool)change.NewValue!);
         if (change.Property == HeaderProperty) {
-            var headerStr = change.NewValue as string;
-            _cachedCompactFallbackText = (headerStr != null && headerStr.Length > 0)
-                ? headerStr.Substring(0, 1)
-                : null;
+            _cachedCompactFallbackText = FirstTextElement(change.NewValue);
             UpdateIconDisplay();
         }
+    }
+
+    /// <summary>
+    /// 取 Header 的第一个字符作为紧凑模式下的图标回退。
+    /// 按文本元素（而非 UTF-16 码元）切分，避免把 emoji 的代理对截断成乱码。
+    /// </summary>
+    private static string? FirstTextElement(object? header)
+    {
+        // 控件类型的 Header 无法有意义地取首字符（ToString 会得到类型名）。
+        var text = header is Control ? null : header as string ?? header?.ToString();
+        if (string.IsNullOrEmpty(text)) return null;
+
+        var e = StringInfo.GetTextElementEnumerator(text);
+        return e.MoveNext() ? (string)e.Current : null;
     }
 
     private void UpdateIconDisplay()
@@ -190,7 +245,7 @@ public class TabBarItem : ContentControl
             _iconPresenter.Content = _iconElement;
             _iconPresenter.IsVisible = true;
         }
-        else if (PseudoClasses.Contains("compact") && _cachedCompactFallbackText != null) {
+        else if (PseudoClasses.Contains(PcCompact) && _cachedCompactFallbackText != null) {
             // 回退：显示标题的第一个字符（缓存以避免每次布局遍历时分配）
             if (_compactFallbackTextBlock == null)
                 _compactFallbackTextBlock = new TextBlock
@@ -211,19 +266,16 @@ public class TabBarItem : ContentControl
     private void OnTabContextRequested(object? sender, ContextRequestedEventArgs e)
     {
         // 右键单击时选中此标签页（以便上下文菜单命令针对正确的标签页）
-        if (IsEnabled) {
-            var parentTabBar = this.FindAncestorOfType<TabBar>();
-            if (parentTabBar != null) {
-                int index = parentTabBar.IndexFromContainer(this);
-                if (index >= 0)
-                    parentTabBar.SelectedIndex = index;
-            }
+        if (IsEnabled && _parentTabBar != null) {
+            int index = _parentTabBar.IndexFromContainer(this);
+            if (index >= 0)
+                _parentTabBar.SelectedIndex = index;
         }
     }
 
     internal void SetCompact(bool isCompact)
     {
-        PseudoClasses.Set("compact", isCompact);
+        PseudoClasses.Set(PcCompact, isCompact);
         UpdateIconDisplay();
     }
 
@@ -233,9 +285,9 @@ public class TabBarItem : ContentControl
     /// </summary>
     internal void SetCloseButtonState(bool closeCollapsed, bool closeAlways, bool closeOnHover)
     {
-        PseudoClasses.Set("closecollapsed", closeCollapsed);
-        PseudoClasses.Set("closealways", closeAlways);
-        PseudoClasses.Set("closeoverlay", closeOnHover);
+        PseudoClasses.Set(PcCloseCollapsed, closeCollapsed);
+        PseudoClasses.Set(PcCloseAlways, closeAlways);
+        PseudoClasses.Set(PcCloseOverlay, closeOnHover);
 
         _showCloseOnHover = closeOnHover;
 
@@ -252,7 +304,59 @@ public class TabBarItem : ContentControl
 
     internal void SetSeparatorState(bool showSeparator)
     {
-        PseudoClasses.Set(":separator", showSeparator);
+        PseudoClasses.Set(PcSeparator, showSeparator);
+    }
+
+    /// <summary>
+    /// 把 HeaderMemberPath / IconSourceMemberPath 绑定到数据项上。
+    /// 用真正的绑定而非一次性反射取值，这样数据项的属性变更（INotifyPropertyChanged）、
+    /// 嵌套路径（"A.B.C"）以及运行时修改路径都能生效。
+    /// </summary>
+    internal void ApplyMemberBindings(object item, string? headerPath, string? iconPath)
+    {
+        _headerBinding?.Dispose();
+        _headerBinding = null;
+        if (!string.IsNullOrEmpty(headerPath)) {
+            _headerBinding = this.Bind(HeaderProperty, new Binding(headerPath)
+            {
+                Source = item,
+                Mode = BindingMode.OneWay,
+                // Template 优先级低于本地值与样式触发器，因此使用方仍可覆盖。
+                Priority = BindingPriority.Template,
+            });
+        }
+
+        _iconBinding?.Dispose();
+        _iconBinding = null;
+        if (!string.IsNullOrEmpty(iconPath)) {
+            _iconBinding = this.Bind(IconSourceProperty, new Binding(iconPath)
+            {
+                Source = item,
+                Mode = BindingMode.OneWay,
+                Priority = BindingPriority.Template,
+                // 与旧的 "value as IconSource" 行为一致：类型不符时静默取 null，
+                // 而不是抛出绑定错误。
+                Converter = AsIconSourceConverter.Instance,
+            });
+        }
+    }
+
+    internal void ClearMemberBindings()
+    {
+        _headerBinding?.Dispose();
+        _headerBinding = null;
+        _iconBinding?.Dispose();
+        _iconBinding = null;
+    }
+
+    /// <summary>
+    /// 容器被回收或移出 TabBar 时复位由 TabBar 施加的视觉状态。
+    /// </summary>
+    internal void ResetManagedVisualState()
+    {
+        Width = double.NaN;
+        SetCompact(false);
+        SetSeparatorState(false);
     }
 
     protected override void OnPointerEntered(PointerEventArgs e)
@@ -272,4 +376,15 @@ public class TabBarItem : ContentControl
     }
 
     internal bool HasPseudoClass(string name) => PseudoClasses.Contains(name);
+
+    private sealed class AsIconSourceConverter : IValueConverter
+    {
+        internal static readonly AsIconSourceConverter Instance = new();
+
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+            => value as IconSource;
+
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+            => throw new NotSupportedException();
+    }
 }

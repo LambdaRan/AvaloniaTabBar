@@ -11,7 +11,10 @@
   <PropertyGroup>
     <IsPackable>true</IsPackable>
     <PackageId>SimTabBar</PackageId>
-    <Version>0.1.0</Version>
+    <!-- VersionPrefix (not Version) so that `dotnet pack -p:VersionSuffix=ci.N`
+         produces 0.1.0-ci.N. An explicit <Version> would silently swallow the
+         suffix and every CI run would publish the same version. -->
+    <VersionPrefix>0.1.0</VersionPrefix>
     <Authors>LambdaRan</Authors>
     <Description>A VS Code-style tab bar control library for Avalonia. Features multiple width modes, close button modes, context menus, keyboard navigation, pinned tabs, and theme support.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -27,7 +30,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="12.*" PrivateAssets="all" />
+    <!-- No PrivateAssets: Avalonia is a public dependency of this control library
+         and must flow to consumers. A fixed range keeps builds reproducible and
+         stops the package from silently loading against an incompatible major. -->
+    <PackageReference Include="Avalonia" Version="[12.1.0,13.0.0)" />
   </ItemGroup>
 
   <ItemGroup>

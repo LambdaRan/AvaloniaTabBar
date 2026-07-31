@@ -119,7 +119,7 @@ public class TabViewCloseTests
         window.Show();
 
         // Auto 模式下只有 1 个标签页：关闭按钮应可见（不折叠）
-        Assert.False(tab.HasPseudoClass("closecollapsed"));
+        Assert.False(tab.HasPseudoClass(":closecollapsed"));
 
         window.Close();
     }
@@ -136,8 +136,8 @@ public class TabViewCloseTests
         window.Show();
 
         // Always 模式：关闭按钮不应折叠
-        Assert.False(tab.HasPseudoClass("closecollapsed"));
-        Assert.True(tab.HasPseudoClass("closealways"));
+        Assert.False(tab.HasPseudoClass(":closecollapsed"));
+        Assert.True(tab.HasPseudoClass(":closealways"));
 
         window.Close();
     }
@@ -153,9 +153,9 @@ public class TabViewCloseTests
         Assert.NotNull(selectedTab);
 
         // 选中的标签页：应始终显示关闭按钮
-        Assert.False(selectedTab!.HasPseudoClass("closecollapsed"));
-        Assert.True(selectedTab.HasPseudoClass("closealways"));
-        Assert.False(selectedTab.HasPseudoClass("closeoverlay"));
+        Assert.False(selectedTab!.HasPseudoClass(":closecollapsed"));
+        Assert.True(selectedTab.HasPseudoClass(":closealways"));
+        Assert.False(selectedTab.HasPseudoClass(":closeoverlay"));
 
         window.Close();
     }
@@ -171,9 +171,9 @@ public class TabViewCloseTests
         Assert.NotNull(unselectedTab);
 
         // 未选中的标签页：折叠但带有 overlay（悬停时显示）
-        Assert.True(unselectedTab!.HasPseudoClass("closecollapsed"));
-        Assert.False(unselectedTab.HasPseudoClass("closealways"));
-        Assert.True(unselectedTab.HasPseudoClass("closeoverlay"));
+        Assert.True(unselectedTab!.HasPseudoClass(":closecollapsed"));
+        Assert.False(unselectedTab.HasPseudoClass(":closealways"));
+        Assert.True(unselectedTab.HasPseudoClass(":closeoverlay"));
 
         window.Close();
     }
@@ -190,9 +190,9 @@ public class TabViewCloseTests
         window.Show();
 
         // Auto 模式下只有 1 个标签页：不折叠，无 closeoverlay，无 closealways
-        Assert.False(tab.HasPseudoClass("closecollapsed"));
-        Assert.False(tab.HasPseudoClass("closeoverlay"));
-        Assert.False(tab.HasPseudoClass("closealways"));
+        Assert.False(tab.HasPseudoClass(":closecollapsed"));
+        Assert.False(tab.HasPseudoClass(":closeoverlay"));
+        Assert.False(tab.HasPseudoClass(":closealways"));
 
         window.Close();
     }
@@ -217,9 +217,9 @@ public class TabViewCloseTests
             var window = new Window { Width = 800, Height = 600, Content = tabView };
             window.Show();
 
-            Assert.True(tab.HasPseudoClass("closecollapsed"));
-            Assert.False(tab.HasPseudoClass("closeoverlay"));
-            Assert.False(tab.HasPseudoClass("closealways"));
+            Assert.True(tab.HasPseudoClass(":closecollapsed"));
+            Assert.False(tab.HasPseudoClass(":closeoverlay"));
+            Assert.False(tab.HasPseudoClass(":closealways"));
 
             window.Close();
         }

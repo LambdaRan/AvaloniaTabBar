@@ -2,6 +2,8 @@ name: build
 
 on:
   push:
+    branches: [master]
+  pull_request:
   workflow_dispatch:
     inputs:
       version:
@@ -18,12 +20,23 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - name: Restore
+        run: dotnet restore AvaloniaTabBar.slnx
+
+      - name: Build
+        run: dotnet build AvaloniaTabBar.slnx -c Release --no-restore
+
+      # The test suite is the gate for the pack step below; without it a broken
+      # control library would still be published as a package.
+      - name: Test
+        run: dotnet test SimTabBar.Tests/SimTabBar.Tests.csproj -c Release --no-build
+
       - name: Pack SimTabBar
         run: |
           if [ -n "${{ inputs.version }}" ]; then
-            dotnet pack SimTabBar/SimTabBar.csproj -c Release -p:Version=${{ inputs.version }}
+            dotnet pack SimTabBar/SimTabBar.csproj -c Release --no-build -p:Version=${{ inputs.version }}
           else
-            dotnet pack SimTabBar/SimTabBar.csproj -c Release -p:VersionSuffix=ci.${{ github.run_number }}
+            dotnet pack SimTabBar/SimTabBar.csproj -c Release --no-build -p:VersionSuffix=ci.${{ github.run_number }}
           fi
 
       - name: Upload NuGet packages

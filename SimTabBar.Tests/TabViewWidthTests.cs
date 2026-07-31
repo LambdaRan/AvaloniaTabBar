@@ -79,6 +79,6 @@ public class TabViewWidthTests
     public void TabBarItem_IsClosable_False_SetsPseudoClass()
     {
         var tab = new TabBarItem { IsClosable = false };
-        Assert.True(tab.HasPseudoClass("closecollapsed"));
+        Assert.True(tab.HasPseudoClass(":closecollapsed"));
     }
 }

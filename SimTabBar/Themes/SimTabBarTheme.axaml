@@ -48,6 +48,9 @@
             <!-- ==================== TabBar ControlTheme ==================== -->
             <ControlTheme x:Key="{x:Type controls:TabBar}" TargetType="controls:TabBar">
                 <Setter Property="Background" Value="{DynamicResource SimTabBarBackground}" />
+                <!-- TabBar is focusable so Ctrl+Tab / Ctrl+F4 reach OnKeyDown;
+                     suppress the focus rectangle that would otherwise be drawn. -->
+                <Setter Property="FocusAdorner" Value="{x:Null}" />
                 <Setter Property="Template">
                     <ControlTemplate>
                         <Grid RowDefinitions="Auto,*"
@@ -215,9 +218,28 @@
                     <Setter Property="IsVisible" Value="True" />
                 </Style>
 
-                <!-- Compact mode: hide header text -->
+                <!-- Compact mode: narrow the tab and hide header text.
+                     MinWidth must be relaxed here as well: the base MinWidth setter
+                     above (100) would otherwise clamp the 36px width set in code. -->
+                <Style Selector="^:compact">
+                    <Setter Property="MinWidth" Value="{DynamicResource SimTabBarItemCompactWidth}" />
+                </Style>
                 <Style Selector="^:compact /template/ ContentPresenter#PART_HeaderPresenter">
                     <Setter Property="IsVisible" Value="False" />
+                </Style>
+
+                <!-- Compact mode: drop the horizontal padding so the 36px tab
+                     can still fit the 16px icon slot. -->
+                <Style Selector="^:compact /template/ Border#PART_RootBorder">
+                    <Setter Property="Padding" Value="0" />
+                </Style>
+
+                <!-- Compact mode: the icon is the only visible content, so let it
+                     span all three columns and centre it in the 36px tab. -->
+                <Style Selector="^:compact /template/ ContentPresenter#PART_IconPresenter">
+                    <Setter Property="Grid.ColumnSpan" Value="3" />
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="HorizontalAlignment" Value="Center" />
                 </Style>
 
                 <!-- Pointer over (unselected) -->
