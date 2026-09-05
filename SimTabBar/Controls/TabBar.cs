@@ -302,8 +302,10 @@ public class TabBar : SelectingItemsControl
 
         if (container is not TabBarItem tvi) return;
 
-        // 在容器创建时立即设置 IsSelected（安全网）
-        tvi.IsSelected = (index == SelectedIndex);
+        // 不在此预置 IsSelected：本地值会让基类 ContainerForItemPreparedOverride 走 pull
+        // 分支（把容器状态当一次点击读回模型），Single 模式下对已选中索引 pull 出 true
+        // 会 toggle 反选，把实体化前的选中初值清成 -1（见 TabViewInitialSelectionTests）。
+        // fresh 容器交给基类 push 分支标记；已实现容器由 UpdateAllTabVisuals 扫描。
 
         // 容器刚实现时就把关闭按钮与分隔符状态写好。放在这里（而不是依赖
         // 布局完成后再扫一遍）才能保证新容器一出现状态就是正确的。
@@ -749,7 +751,7 @@ public class TabBar : SelectingItemsControl
                 }
             }
 
-            // === 选择 ===
+            // === 选择 ===（实体化瞬间由基类 push 分支负责，见 PrepareContainerForItemOverride）
             tvi.IsSelected = (i == selectedIndex);
             // === 关闭按钮和分隔符 ===
             UpdateCloseAndSeparatorState(tvi, i, selectedIndex, overlayMode);
