@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Media.Transformation;
 using Avalonia.Threading;
 using System.Collections;
+using System.Globalization;
 
 namespace SimTabBar.Controls;
 
@@ -139,12 +140,75 @@ internal sealed class TabReorderController
         // TabBar.OnPointerMoved/OnPointerReleased 转发进来。
         e.Pointer.Capture(_tabBar);
 
+        // 按下已触发选中;Compact 模式下选中会改变全部标签宽度,
+        // 必须先跑完布局再缓存 bounds,否则拿到的是选中前的旧几何。
+        _tabBar.UpdateLayout();
+        CacheBounds();
+
+        _startContentX = _watchPressPos.X + (ScrollViewer?.Offset.X ?? 0);
+        _lastPointerPos = e.GetPosition(_tabBar);
+        _targetIndex = _dragIndex;
+
         watched.SetDragging(true);
+        UpdateDrag();
     }
+
+    private void CacheBounds()
+    {
+        int count = _tabBar.ItemCount;
+        _lefts = new double[count];
+        _widths = new double[count];
+        // 统一折算到内容空间(TabBar 坐标 + 缓存时滚动偏移),
+        // 后续滚动变化只影响指针侧换算,缓存本身保持有效。
+        double offset = ScrollViewer?.Offset.X ?? 0;
+        for (int i = 0; i < count; i++)
+        {
+            if (_tabBar.ContainerFromIndex(i) is not { } c) continue;
+            var p = c.TranslatePoint(new Point(0, 0), _tabBar);
+            _lefts[i] = (p?.X ?? 0) + offset;
+            _widths[i] = c.Bounds.Width;
+        }
+    }
+
+    private static TransformOperations Translate(double x) =>
+        TransformOperations.Parse("translateX(" + x.ToString(CultureInfo.InvariantCulture) + "px)");
 
     private void UpdateDrag()
     {
-        // Task 3 实现几何与让位视觉。
+        if (_dragged == null || _lefts.Length == 0) return;
+
+        // === 被拖项跟随指针(仅 X 轴) ===
+        double pointerContentX = _lastPointerPos.X + (ScrollViewer?.Offset.X ?? 0);
+        double dx = pointerContentX - _startContentX;
+        _dragged.RenderTransform = Translate(dx);
+
+        // === 目标索引 = 非拖项中点在被拖项当前中心左侧的个数 ===
+        // (Xaml.Behaviors ItemDragBehavior 同款"过半判定")
+        double draggedCenter = _lefts[_dragIndex] + _widths[_dragIndex] / 2 + dx;
+        int target = 0;
+        for (int i = 0; i < _lefts.Length; i++)
+        {
+            if (i == _dragIndex) continue;
+            if (_lefts[i] + _widths[i] / 2 < draggedCenter) target++;
+        }
+        _targetIndex = Math.Clamp(target, 0, _lefts.Length - 1);
+
+        // === 邻居让位:(dragIndex, target] 左移、[target, dragIndex) 右移,
+        // 位移量 = 被拖项宽度。非过渡项归位用 Identity 而非 null,
+        // 保证 TransformOperationsTransition 能插值回位。 ===
+        for (int i = 0; i < _lefts.Length; i++)
+        {
+            if (i == _dragIndex) continue;
+            if (_tabBar.ContainerFromIndex(i) is not TabBarItem tvi) continue;
+
+            double shift = 0;
+            if (_dragIndex < _targetIndex && i > _dragIndex && i <= _targetIndex)
+                shift = -_widths[_dragIndex];
+            else if (_targetIndex < _dragIndex && i >= _targetIndex && i < _dragIndex)
+                shift = _widths[_dragIndex];
+
+            tvi.RenderTransform = shift == 0 ? TransformOperations.Identity : Translate(shift);
+        }
     }
 
     private void Commit()

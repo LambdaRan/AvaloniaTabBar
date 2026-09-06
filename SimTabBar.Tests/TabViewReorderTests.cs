@@ -82,6 +82,19 @@ public class TabViewReorderTests
         window.MouseUp(end, MouseButton.Left);
     }
 
+    /// <summary>
+    /// 逐帧 Pump 直到 tab 中心越过阈值(让位过渡为 120ms RenderTransform 动画,
+    /// headless 下按真实时间推进)。超时由后续断言兜底,不在此处判定。
+    /// </summary>
+    private static void PumpUntil(Window window, TabBarItem tab, double centerBelow)
+    {
+        for (int i = 0; i < 200; i++)
+        {
+            TestHelper.Pump(window);
+            if (CenterOf(tab, window).X < centerBelow) return;
+        }
+    }
+
     [AvaloniaFact]
     public void Reorder_Disabled_DragDoesNotStart()
     {
@@ -219,6 +232,67 @@ public class TabViewReorderTests
 
         Assert.Equal(0, starting);
         Assert.Equal(new[] { "a", "b", "c" }, source);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Reorder_DuringDrag_DraggedFollowsPointer_NeighborsYield()
+    {
+        var (tabView, window, _) = CreateItemsSourceTabBar();
+        var tab0 = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        var tab1 = (TabBarItem)tabView.ContainerFromIndex(1)!;
+        var start = CenterOf(tab0, window);
+        double center1Before = CenterOf(tab1, window).X;
+
+        window.MouseDown(start, MouseButton.Left);
+        var at = start.WithX(start.X + 150);
+        window.MouseMove(at, RawInputModifiers.LeftMouseButton);
+
+        // 被拖项视觉中心跟随指针(+150,容差 10)
+        Assert.InRange(CenterOf(tab0, window).X - start.X, 140, 160);
+
+        // 中点判定:+150 后中心约 248.5,未过右邻中点(实测约 287.5,标签宽 189)
+        // → 目标索引仍为 0,右邻让位尚未触发(位移 0)。
+        Assert.Equal(0, tabView.ReorderController.TargetIndex);
+        Assert.InRange(CenterOf(tab1, window).X, center1Before - 1, center1Before + 1);
+
+        // 拖满一个标签宽度(+230):中心约 328.5 越过右邻中点 → target=1
+        window.MouseMove(start.WithX(start.X + 230), RawInputModifiers.LeftMouseButton);
+
+        // 右邻让位:向左平移约一个被拖项宽度(实测标签宽 189)。
+        // 让位经 120ms RenderTransform 过渡动画,逐帧 Pump 到过渡结束再断言。
+        PumpUntil(window, tab1, center1Before - 100);
+        Assert.True(CenterOf(tab1, window).X < center1Before - 100,
+            $"neighbor should yield left, before={center1Before} now={CenterOf(tab1, window).X}");
+
+        // 目标索引:中心 98.5+230=328.5,已过 B 的中点(约 287.5)→ target=1
+        Assert.Equal(1, tabView.ReorderController.TargetIndex);
+
+        // 本测试不释放指针,避免依赖后续任务才实现的提交行为
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Reorder_DuringDrag_TargetIndex_TracksPointer()
+    {
+        var (tabView, window, _) = CreateItemsSourceTabBar();
+        var tab0 = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        var tab2 = (TabBarItem)tabView.ContainerFromIndex(2)!;
+        var start = CenterOf(tab0, window);
+
+        window.MouseDown(start, MouseButton.Left);
+        window.MouseMove(start.WithX(start.X + 10), RawInputModifiers.LeftMouseButton);
+        Assert.Equal(0, tabView.ReorderController.TargetIndex);
+
+        // 拖过第 3 个标签中心 → target=2
+        var over = CenterOf(tab2, window);
+        window.MouseMove(over.WithX(over.X + 10), RawInputModifiers.LeftMouseButton);
+        Assert.Equal(2, tabView.ReorderController.TargetIndex);
+
+        // 拖回起点 → target=0
+        window.MouseMove(start, RawInputModifiers.LeftMouseButton);
+        Assert.Equal(0, tabView.ReorderController.TargetIndex);
+
         window.Close();
     }
 }
