@@ -25,17 +25,11 @@ namespace SimTabBar.Tests;
 public class RegressionTests
 {
     /// <summary>推进布局与合成。命中测试需要一次渲染 tick，否则合成树是陈旧的。</summary>
-    private static void Pump(Window window, double w = 800, double h = 600)
-    {
-        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-        window.Measure(new Size(w, h));
-        window.Arrange(new Rect(0, 0, w, h));
-        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-    }
+    private static void Pump(Window window, double w = 800, double h = 600) =>
+        TestHelper.Pump(window, w, h);
 
     private static T Part<T>(Visual root, string name) where T : Control =>
-        root.GetVisualDescendants().OfType<T>().First(c => c.Name == name);
+        TestHelper.Part<T>(root, name);
 
     private static T? PartOrNull<T>(Visual root, string name) where T : Control =>
         root.GetVisualDescendants().OfType<T>().FirstOrDefault(c => c.Name == name);

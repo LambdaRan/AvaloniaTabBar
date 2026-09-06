@@ -161,11 +161,18 @@
                                                       VerticalAlignment="Center"
                                                       IsVisible="False" />
 
-                                    <!-- Header -->
+                                    <!-- Header
+                                         Content / ContentTemplate 刻意不绑：两条车道
+                                         （Header 字符串 / HeaderTemplate 模板）由
+                                         TabBarItem.UpdateHeaderDisplay() 全权驱动，
+                                         与 PART_IconPresenter 同一惯例。
+                                         若在此绑 Content="{TemplateBinding Header}"，
+                                         模板非空时 ContentPresenter 会把 DataContext
+                                         设成 Header 字符串（Avalonia 12.1.1
+                                         ContentPresenter.cs:533-536），模板内就绑不到
+                                         数据项成员了。 -->
                                     <ContentPresenter x:Name="PART_HeaderPresenter"
                                                       Grid.Column="1"
-                                                      Content="{TemplateBinding Header}"
-                                                      ContentTemplate="{TemplateBinding HeaderTemplate}"
                                                       VerticalAlignment="Center"
                                                       HorizontalAlignment="Left"
                                                       TextBlock.Foreground="{TemplateBinding Foreground}" />

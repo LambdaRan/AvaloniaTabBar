@@ -1,10 +1,12 @@
 using System.Collections;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
+using Avalonia.VisualTree;
 using Avalonia.Headless.XUnit;
 using SimTabBar.Controls;
 
@@ -65,5 +67,24 @@ namespace SimTabBar.Tests
             window.Show();
             return (tabView, window);
         }
+
+        /// <summary>
+        /// 跑完一轮布局与渲染。断言 Bounds / 伪类 / 模板子元素前必须先调用，
+        /// 否则 headless 下 Measure/Arrange 还没发生。
+        /// </summary>
+        public static void Pump(Window window, double w = 800, double h = 600)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            window.Measure(new Size(w, h));
+            window.Arrange(new Rect(0, 0, w, h));
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        }
+
+        /// <summary>
+        /// 按 x:Name 在可视化树里找模板部件。
+        /// </summary>
+        public static T Part<T>(Visual root, string name) where T : Control =>
+            root.GetVisualDescendants().OfType<T>().First(c => c.Name == name);
     }
 }

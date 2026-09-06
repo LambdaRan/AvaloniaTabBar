@@ -51,6 +51,7 @@ public class TabBarItem : ContentControl
 
     private Control? _iconElement;
     private ContentPresenter? _iconPresenter;
+    private ContentPresenter? _headerPresenter;
     private Button? _closeButton;
     private EventHandler<RoutedEventArgs>? _closeButtonClickHandler;
     private TextBlock? _compactFallbackTextBlock;
@@ -199,6 +200,7 @@ public class TabBarItem : ContentControl
         base.OnApplyTemplate(e);
 
         _iconPresenter = e.NameScope.Find<ContentPresenter>("PART_IconPresenter");
+        _headerPresenter = e.NameScope.Find<ContentPresenter>("PART_HeaderPresenter");
         _closeButton = e.NameScope.Find<Button>("PART_CloseButton");
 
         if (_closeButton != null) {
@@ -210,6 +212,7 @@ public class TabBarItem : ContentControl
         }
 
         UpdateIconDisplay();
+        UpdateHeaderDisplay();
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -220,7 +223,12 @@ public class TabBarItem : ContentControl
         if (change.Property == HeaderProperty) {
             _cachedCompactFallbackText = FirstTextElement(change.NewValue);
             UpdateIconDisplay();
+            UpdateHeaderDisplay();
         }
+        // HeaderTemplate 切换车道；DataContext 变更是容器回收复用的信号
+        // （ItemsControl.cs:707-708 在 PrepareContainerForItemOverride 之前就设好了）。
+        if (change.Property == HeaderTemplateProperty || change.Property == DataContextProperty)
+            UpdateHeaderDisplay();
     }
 
     /// <summary>
@@ -260,6 +268,34 @@ public class TabBarItem : ContentControl
         }
         else {
             _iconPresenter.IsVisible = false;
+        }
+    }
+
+    /// <summary>
+    /// 驱动 header 的两条车道。与 <see cref="UpdateIconDisplay"/> 同构：主题里
+    /// PART_HeaderPresenter 不绑 Content / ContentTemplate，全由此处决定。
+    /// </summary>
+    /// <remarks>
+    /// 模板车道把 <see cref="StyledElement.DataContext"/> 喂给 presenter.Content，
+    /// 这样 ContentPresenter 会把 presenter 的 DataContext 设成数据项本身
+    /// （Avalonia 12.1.1 ContentPresenter.cs:533-536），模板内的绑定因此落在
+    /// 数据项上而非 Header 字符串上。
+    /// DataContext 为 null 且模板非空时 header 渲染为空 —— 刻意不回落到字符串车道，
+    /// 静默换车道会掩盖数据上下文缺失这个真实问题。
+    /// </remarks>
+    private void UpdateHeaderDisplay()
+    {
+        if (_headerPresenter == null) return;
+
+        if (HeaderTemplate != null) {
+            _headerPresenter.Content = DataContext;
+            _headerPresenter.ContentTemplate = HeaderTemplate;
+        }
+        else {
+            // 字符串车道。ContentPresenter 对 string 内容自动生成 TextBlock，
+            // presenter 上的 TextBlock.Foreground 保留 → 颜色行为不变。
+            _headerPresenter.Content = Header;
+            _headerPresenter.ContentTemplate = null;
         }
     }
 
