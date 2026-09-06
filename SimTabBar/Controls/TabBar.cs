@@ -1089,6 +1089,14 @@ public class TabBar : SelectingItemsControl
     {
         base.OnKeyDown(e);
 
+        // Escape 取消拖动。放在 IsBuiltInKeyboardHandlingEnabled 守卫之前:
+        // 取消拖动不属于"内置键盘导航"快捷键,应用关掉该开关也应能取消。
+        if (_reorder?.IsDragging == true && e.Key == Key.Escape) {
+            _reorder.Cancel();
+            e.Handled = true;
+            return;
+        }
+
         if (!IsBuiltInKeyboardHandlingEnabled) return;
 
         if (e.Key == Key.Tab && e.KeyModifiers == KeyModifiers.Control) {

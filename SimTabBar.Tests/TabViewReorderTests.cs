@@ -409,4 +409,51 @@ public class TabViewReorderTests
         Assert.Same(pinned, tabView.Items[2]);
         window.Close();
     }
+
+    [AvaloniaFact]
+    public void Reorder_Escape_CancelsWithoutCommit()
+    {
+        var (tabView, window, docs) = CreateItemsSourceTabBar();
+        var tab0 = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        var start = CenterOf(tab0, window);
+
+        window.MouseDown(start, MouseButton.Left);
+        var at = start.WithX(start.X + 200);
+        window.MouseMove(at, RawInputModifiers.LeftMouseButton);
+        Assert.True(tabView.ReorderController.IsDragging);
+
+        // 按下时焦点已转移到 TabBar(现有行为),KeyPress 直达 OnKeyDown
+        window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "");
+
+        Assert.False(tabView.ReorderController.IsDragging);
+        Assert.False(tab0.HasPseudoClass(TabBarItem.PcDragging));
+
+        window.MouseUp(at, MouseButton.Left);
+        Assert.Equal(new[] { "Doc 1", "Doc 2", "Doc 3", "Doc 4" }, docs.Select(d => d.Title));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Reorder_DraggedItemRemovedDuringDrag_CommitAbandoned()
+    {
+        var (tabView, window, docs) = CreateItemsSourceTabBar();
+        var doc1 = docs[0];
+        int completed = 0;
+        tabView.TabReorderCompleted += (_, _) => completed++;
+
+        var tab0 = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        var start = CenterOf(tab0, window);
+        window.MouseDown(start, MouseButton.Left);
+        var at = start.WithX(start.X + 200);
+        window.MouseMove(at, RawInputModifiers.LeftMouseButton);
+
+        docs.Remove(doc1);          // 拖动中应用移除被拖项
+        TestHelper.Pump(window);
+
+        window.MouseUp(at, MouseButton.Left);   // 不得崩溃
+
+        Assert.Equal(0, completed);
+        Assert.Equal(new[] { "Doc 2", "Doc 3", "Doc 4" }, docs.Select(d => d.Title));
+        window.Close();
+    }
 }
