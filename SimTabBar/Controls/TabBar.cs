@@ -121,6 +121,8 @@ public class TabBar : SelectingItemsControl
     /// 标签头的 DataTemplate。非空时取代 Header 字符串成为标签头的视觉来源，
     /// 模板的 DataContext 是数据项本身（ItemsSource 模式）或继承来的 DataContext
     /// （直接子项模式），因此模板内可绑定 IsActive 之类的成员、对局部元素单独着色。
+    /// 本 TabBar 级属性仅在 ItemsSource 模式下生效：直接子项模式下同步链路会跳过
+    /// 容器即项的子项，需直接在子项 TabBarItem 上设置 HeaderTemplate。
     /// Header 字符串属性仍然生效：无模板时它是唯一视觉源，有模板时它继续承载
     /// 语义值（如 Compact 模式的图标首字符回退）。
     /// </summary>

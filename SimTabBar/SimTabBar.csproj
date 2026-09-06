@@ -12,7 +12,7 @@
     <IsPackable>true</IsPackable>
     <PackageId>SimTabBar</PackageId>
     <!-- VersionPrefix (not Version) so that `dotnet pack -p:VersionSuffix=ci.N`
-         produces 0.1.0-ci.N. An explicit <Version> would silently swallow the
+         produces 0.2.0-ci.N. An explicit <Version> would silently swallow the
          suffix and every CI run would publish the same version. -->
     <VersionPrefix>0.2.0</VersionPrefix>
     <Authors>LambdaRan</Authors>

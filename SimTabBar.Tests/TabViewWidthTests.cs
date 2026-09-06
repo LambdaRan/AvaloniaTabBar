@@ -239,7 +239,7 @@ public class TabViewWidthTests
         Assert.False(tab.HasPseudoClass(":fixed"));
         Assert.Equal(100, tab.MinWidth);            // ControlTheme 的 setter 重新生效
         // 12 条标签平分 800px 窗口的视口，每条都远低于 MinWidth 100
-        // → Math.Clamp（TabBar.cs:716）把它夹回 100。这与视口的精确值无关，
+        // → Math.Clamp（TabBar.cs:744）把它夹回 100。这与视口的精确值无关，
         // 任何 < 1200 的视口都成立，故断言不依赖具体算术。
         Assert.Equal(100, tab.Bounds.Width);
         window.Close();
@@ -249,7 +249,7 @@ public class TabViewWidthTests
     public void TabWidthMode_Fixed_ContainerRelease_ClearsFixedState()
     {
         // ResetManagedVisualState() 中的 SetFixed(false)。
-        // 镜像 RegressionTests.cs:712-730 的 Compact 版复位测试。
+        // 镜像 RegressionTests.cs:706-724 的 Compact 版复位测试。
         var items = new ObservableCollection<SessionLikeItem>
         {
             new() { Title = "a" }, new() { Title = "b" },
