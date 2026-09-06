@@ -295,4 +295,118 @@ public class TabViewReorderTests
 
         window.Close();
     }
+
+    [AvaloniaFact]
+    public void Reorder_ItemsSource_DragRightTwo_CommitsAndRaisesCompleted()
+    {
+        var (tabView, window, docs) = CreateItemsSourceTabBar();
+        var doc1 = docs[0];
+        TabBarReorderCompletedEventArgs? completed = null;
+        tabView.TabReorderCompleted += (_, e) => completed = e;
+
+        var tab0 = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        var tab2 = (TabBarItem)tabView.ContainerFromIndex(2)!;
+        double delta = CenterOf(tab2, window).X - CenterOf(tab0, window).X + 10;
+        DragBy(window, tab0, delta);
+
+        Assert.Equal(new[] { "Doc 2", "Doc 3", "Doc 1", "Doc 4" }, docs.Select(d => d.Title));
+        Assert.NotNull(completed);
+        Assert.Equal(0, completed!.OldIndex);
+        Assert.Equal(2, completed.NewIndex);
+        Assert.Same(doc1, completed.Item);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Reorder_Selection_FollowsMovedTab()
+    {
+        var (tabView, window, docs) = CreateItemsSourceTabBar();
+        var doc1 = docs[0];
+        var tab0 = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        var tab2 = (TabBarItem)tabView.ContainerFromIndex(2)!;
+        DragBy(window, tab0, CenterOf(tab2, window).X - CenterOf(tab0, window).X + 10);
+
+        Assert.Same(doc1, tabView.SelectedItem);
+        Assert.Equal(2, tabView.SelectedIndex);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Reorder_DirectChildren_CommitsAndKeepsContainerState()
+    {
+        var (tabView, window) = TestHelper.CreateTabBarWithTabs(3);
+        tabView.CanReorderTabs = true;
+        TestHelper.Pump(window);
+
+        var tab2 = (TabBarItem)tabView.ContainerFromIndex(2)!;
+        var tab1 = (TabBarItem)tabView.ContainerFromIndex(1)!;
+        double delta = CenterOf(tab1, window).X - CenterOf(tab2, window).X - 10;
+        DragBy(window, tab2, delta);
+
+        // A B C → C 拖到 B 前 → A C B
+        Assert.Same(tab2, tabView.Items[1]);
+        Assert.Same(tab1, tabView.Items[2]);
+        // 容器经历 RemoveAt+Insert 的 Release+重 Prepare 后净状态完好
+        Assert.Equal("Tab 3", tab2.Header);
+        Assert.False(tab2.HasPseudoClass(TabBarItem.PcDragging));
+        Assert.Equal(1, tabView.SelectedIndex);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Reorder_DropAtSameIndex_NoCompletedEvent()
+    {
+        var (tabView, window, docs) = CreateItemsSourceTabBar();
+        int completed = 0;
+        tabView.TabReorderCompleted += (_, _) => completed++;
+
+        var tab0 = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        DragBy(window, tab0, +20);   // 未越过 B 的中点(标签宽约 185)
+
+        Assert.Equal(0, completed);
+        Assert.Equal(new[] { "Doc 1", "Doc 2", "Doc 3", "Doc 4" }, docs.Select(d => d.Title));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Reorder_DragToLast_LandsAtEnd()
+    {
+        var (tabView, window, docs) = CreateItemsSourceTabBar();
+        var tab0 = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        var tab3 = (TabBarItem)tabView.ContainerFromIndex(3)!;
+        DragBy(window, tab0, CenterOf(tab3, window).X - CenterOf(tab0, window).X + 50);
+
+        Assert.Equal(new[] { "Doc 2", "Doc 3", "Doc 4", "Doc 1" }, docs.Select(d => d.Title));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Reorder_DragToFirst_LandsAtStart()
+    {
+        var (tabView, window, docs) = CreateItemsSourceTabBar();
+        var tab2 = (TabBarItem)tabView.ContainerFromIndex(2)!;
+        var tab0 = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        DragBy(window, tab2, CenterOf(tab0, window).X - CenterOf(tab2, window).X - 10);
+
+        // C 拖到 A 中点左侧 → target=0 → C A B D
+        Assert.Equal(new[] { "Doc 3", "Doc 1", "Doc 2", "Doc 4" }, docs.Select(d => d.Title));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Reorder_PinnedTab_IsDraggable()
+    {
+        var (tabView, window) = TestHelper.CreateTabBarWithTabs(3);
+        tabView.CanReorderTabs = true;
+        var pinned = (TabBarItem)tabView.Items[0]!;
+        pinned.IsClosable = false;
+        TestHelper.Pump(window);
+
+        var tab2 = (TabBarItem)tabView.ContainerFromIndex(2)!;
+        DragBy(window, pinned, CenterOf(tab2, window).X - CenterOf(pinned, window).X + 10);
+
+        // 固定页一视同仁:A B C → B C A
+        Assert.Same(pinned, tabView.Items[2]);
+        window.Close();
+    }
 }

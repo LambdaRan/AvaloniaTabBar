@@ -213,9 +213,49 @@ internal sealed class TabReorderController
 
     private void Commit()
     {
-        // Task 4 实现提交。当前阶段释放只复位。
+        var dragged = _dragged;
+        if (dragged == null) return;
+        int newIndex = _targetIndex;
+
+        // 先复位视觉再改集合:直接子项模式的 RemoveAt+Insert 会触发
+        // ReleaseContainer+重 Prepare,残留的 RenderTransform 会脏化新位置。
         ClearVisuals();
         ResetState();
+
+        // 拖动期间应用可能移除了被拖项(容器已不在 Items 中)→ 放弃提交。
+        int oldIndex = _tabBar.IndexFromContainer(dragged);
+        if (oldIndex < 0) return;
+
+        // Item 必须在变更前解析:RemoveAt 之后容器→数据项的映射即失效。
+        var item = _tabBar.ResolveItem(dragged);
+        bool wasSelected = ReferenceEquals(_tabBar.SelectedItem, item);
+
+        if (oldIndex == newIndex) return;   // 未移动:不发事件
+
+        // 双模式统一 RemoveAt+Insert:Avalonia 12 的 ItemCollection 没有 Move,
+        // IList 接口同样没有(ObservableCollection.Move 是类自有成员)。
+        if (_tabBar.ItemsSource is IList source)
+        {
+            source.RemoveAt(oldIndex);
+            source.Insert(newIndex, item);
+        }
+        else
+        {
+            _tabBar.Items.RemoveAt(oldIndex);
+            _tabBar.Items.Insert(newIndex, item);
+        }
+
+        // Remove 会清掉选中(按对象跟踪的 SelectedItem 被移除),Insert 不会恢复,
+        // 必须显式还原——按下时已选中被拖项,拖动后选中必须跟着走。
+        if (wasSelected) _tabBar.SelectedItem = item;
+
+        // 事件在集合变更与选中恢复之后发出:应用收到时 UI 已是最终状态,
+        // 可直接做顺序持久化。
+        var args = new TabBarReorderCompletedEventArgs(item, dragged, oldIndex, newIndex)
+        {
+            RoutedEvent = TabBar.TabReorderCompletedEvent
+        };
+        _tabBar.RaiseEvent(args);
     }
 
     private void ClearVisuals()
