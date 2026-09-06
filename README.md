@@ -13,4 +13,5 @@
 - **扩展区域** — TabStrip Header / Footer 可插入自定义内容
 - **键盘导航** — Ctrl+Tab / Ctrl+Shift+Tab、Ctrl+F4（关闭）
 - **固定标签页** — 支持不可关闭的固定标签
+- **拖动排序** — `CanReorderTabs` 开启后按住标签拖动换位（实时让位空隙）；`TabDragStarting` 可取消，`TabReorderCompleted` 报告结果
 - **主题支持** — 适配深色 / 浅色主题

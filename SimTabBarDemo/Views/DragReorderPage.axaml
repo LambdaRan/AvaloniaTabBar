@@ -1,0 +1,37 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:SimTabBar.Controls"
+             x:Class="SimTabBarDemo.Views.DragReorderPage">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="16">
+        <TextBlock Grid.Row="0" Text="拖动排序：CanReorderTabs=True，按住标签水平拖动换位" FontSize="18" Margin="0,0,0,8" />
+
+        <!-- ItemsSource 模式 -->
+        <controls:TabBar x:Name="SourceTabBar" Grid.Row="1" Height="140"
+                          CanReorderTabs="True"
+                          HeaderMemberPath="Title"
+                          TabDragStarting="OnTabDragStarting"
+                          TabReorderCompleted="OnTabReorderCompleted" />
+
+        <!-- 直接子项模式 -->
+        <controls:TabBar x:Name="DirectTabBar" Grid.Row="2" Height="140" Margin="0,12,0,0"
+                          CanReorderTabs="True"
+                          TabDragStarting="OnTabDragStarting"
+                          TabReorderCompleted="OnTabReorderCompleted">
+            <controls:TabBarItem Header="🏠 首页">
+                <TextBlock Text="首页（直接子项）" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="设置">
+                <TextBlock Text="设置（直接子项）" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="输出">
+                <TextBlock Text="输出（直接子项）" Margin="16" />
+            </controls:TabBarItem>
+        </controls:TabBar>
+
+        <CheckBox x:Name="RejectThirdCheck" Grid.Row="3" Margin="0,12,0,0"
+                   Content="演示拦截：拒绝对 ItemsSource 栏第三个标签的拖动（TabDragStarting.Cancel）" />
+
+        <ListBox x:Name="EventLog" Grid.Row="4" Margin="0,12,0,0" />
+    </Grid>
+</UserControl>

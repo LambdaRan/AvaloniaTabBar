@@ -23,6 +23,7 @@
                 <ListBoxItem Content="⌨ 键盘快捷键" />
                 <ListBoxItem Content="📌 不可关闭标签" />
                 <ListBoxItem Content="📜 右键菜单" />
+                <ListBoxItem Content="🔀 拖动排序" />
             </ListBox>
 
             <!-- Right content area -->

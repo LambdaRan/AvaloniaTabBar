@@ -22,7 +22,8 @@ public partial class MainWindow : Window
             new HeaderFooterPage(),
             new KeyboardPage(),
             new PinnedTabPage(),
-            new ContextMenuPage()
+            new ContextMenuPage(),
+            new DragReorderPage()
         };
 
         ShowScene(0);
