@@ -185,4 +185,148 @@ public class TabViewHeaderTemplateTests
         Assert.True(dot.IsVisible);
         window.Close();
     }
+
+    // ---------------------------------------------------------- TabBar 层同步链路
+
+    [AvaloniaFact]
+    public void TabBarHeaderTemplate_DefaultIsNull()
+    {
+        Assert.Null(new TabBar().HeaderTemplate);
+    }
+
+    [AvaloniaFact]
+    public void TabBarHeaderTemplate_PushedToAllRealizedContainers()
+    {
+        var (tabView, window, _) = CreateItemsSourceTabBar(
+            new SessionLikeItem { Title = "A" },
+            new SessionLikeItem { Title = "B" },
+            new SessionLikeItem { Title = "C" });
+        tabView.SelectedIndex = 0;
+        TestHelper.Pump(window);
+
+        tabView.HeaderTemplate = DotTemplate;
+        TestHelper.Pump(window);
+
+        for (int i = 0; i < 3; i++) {
+            var container = (TabBarItem)tabView.ContainerFromIndex(i)!;
+            Assert.Same(DotTemplate, container.HeaderTemplate);
+            // 模板上下文是各自的数据项，不是 Header 字符串
+            Assert.IsType<SessionLikeItem>(HeaderPresenterOf(container).DataContext);
+        }
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void TabBarHeaderTemplate_SetToNullAtRuntime_FallsBackToStringLane()
+    {
+        var item = new SessionLikeItem { Title = "会话A" };
+        var (tabView, window, _) = CreateItemsSourceTabBar(item);
+        tabView.HeaderTemplate = DotTemplate;
+        tabView.SelectedIndex = 0;
+        TestHelper.Pump(window);
+
+        var container = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        Assert.Same(item, HeaderPresenterOf(container).DataContext);
+
+        tabView.HeaderTemplate = null;
+        TestHelper.Pump(window);
+
+        Assert.Null(container.HeaderTemplate);
+        // 回落字符串车道：content 是 Header 字符串
+        var presenter = HeaderPresenterOf(container);
+        Assert.Equal("会话A", presenter.DataContext as string);
+        Assert.Equal("会话A", Assert.IsType<TextBlock>(presenter.Child).Text);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void HeaderTemplate_AppliedToContainerRealizedAfterTemplateSet()
+    {
+        // 实体化推值路径（PrepareContainerForItemOverride），区别于上面的运行期刷新路径
+        var (tabView, window, items) = CreateItemsSourceTabBar(new SessionLikeItem { Title = "A" });
+        tabView.HeaderTemplate = DotTemplate;
+        tabView.SelectedIndex = 0;
+        TestHelper.Pump(window);
+
+        items.Add(new SessionLikeItem { Title = "B", IsActive = true });
+        TestHelper.Pump(window);
+
+        var container = (TabBarItem)tabView.ContainerFromIndex(1)!;
+        Assert.Same(DotTemplate, container.HeaderTemplate);
+        Assert.Same(items[1], HeaderPresenterOf(container).DataContext);
+        Assert.True(HeaderPresenterOf(container)
+            .GetVisualDescendants().OfType<Ellipse>().Single(e => e.Name == "Dot").IsVisible);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void HeaderTemplate_CoexistsWithHeaderMemberPath()
+    {
+        // 两条车道并存不冲突：HeaderMemberPath 仍驱动 Header 字符串，
+        // HeaderTemplate 独立决定视觉。
+        var item = new SessionLikeItem { Title = "会话A" };
+        var (tabView, window, _) = CreateItemsSourceTabBar(item);
+        tabView.HeaderTemplate = DotTemplate;
+        tabView.SelectedIndex = 0;
+        TestHelper.Pump(window);
+
+        var container = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        Assert.Equal("会话A", container.Header);
+
+        item.Title = "改名了";      // HeaderMemberPath 的绑定必须还活着
+        TestHelper.Pump(window);
+
+        Assert.Equal("改名了", container.Header);
+        Assert.Equal("改名了", HeaderPresenterOf(container)
+            .GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "HeaderText").Text);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void HeaderTemplate_ContainerReuse_RebindsToNewItem()
+    {
+        var a = new SessionLikeItem { Title = "A" };
+        var b = new SessionLikeItem { Title = "B" };
+        var (tabView, window, items) = CreateItemsSourceTabBar(a, b);
+        tabView.HeaderTemplate = DotTemplate;
+        tabView.SelectedIndex = 0;
+        TestHelper.Pump(window);
+
+        var container = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        Assert.Same(a, HeaderPresenterOf(container).DataContext);
+
+        items.RemoveAt(0);          // a 移除，容器被回收给 b
+        TestHelper.Pump(window);
+
+        var reused = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        Assert.Same(b, HeaderPresenterOf(reused).DataContext);
+        Assert.Equal("B", HeaderPresenterOf(reused)
+            .GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "HeaderText").Text);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void HeaderTemplate_CompactFallbackStillUsesHeaderString()
+    {
+        // 钉住关键不变量：模板车道不污染 Compact 模式的图标回退。
+        // FirstTextElement(Header) 取的是 "会话A" 的首字符 "会"，
+        // 而不是 item.ToString() 的首字符 "T"（SessionLikeItem.ToString 刻意返回 TOSTRING-前缀）。
+        var item = new SessionLikeItem { Title = "会话A" };
+        var (tabView, window, _) = CreateItemsSourceTabBar(item);
+        tabView.HeaderTemplate = DotTemplate;
+        tabView.TabWidthMode = TabBarWidthMode.Compact;
+        TestHelper.Pump(window);
+
+        tabView.SelectedIndex = 1;  // 让索引 0 落入未选中 → 收缩成紧凑态
+        TestHelper.Pump(window);
+
+        var container = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        Assert.True(container.HasPseudoClass(":compact"));
+        Assert.Equal("会话A", container.Header);
+
+        var fallback = TestHelper.Part<ContentPresenter>(container, "PART_IconPresenter")
+            .GetVisualDescendants().OfType<TextBlock>().Single();
+        Assert.Equal("会", fallback.Text);
+        window.Close();
+    }
 }

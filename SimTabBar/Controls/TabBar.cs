@@ -117,6 +117,16 @@ public class TabBar : SelectingItemsControl
     public static readonly StyledProperty<IDataTemplate?> ContentTemplateProperty =
         ContentControl.ContentTemplateProperty.AddOwner<TabBar>();
 
+    /// <summary>
+    /// 标签头的 DataTemplate。非空时取代 Header 字符串成为标签头的视觉来源，
+    /// 模板的 DataContext 是数据项本身（ItemsSource 模式）或继承来的 DataContext
+    /// （直接子项模式），因此模板内可绑定 IsActive 之类的成员、对局部元素单独着色。
+    /// Header 字符串属性仍然生效：无模板时它是唯一视觉源，有模板时它继续承载
+    /// 语义值（如 Compact 模式的图标首字符回退）。
+    /// </summary>
+    public static readonly StyledProperty<IDataTemplate?> HeaderTemplateProperty =
+        TabBarItem.HeaderTemplateProperty.AddOwner<TabBar>();
+
     public static readonly StyledProperty<string?> HeaderMemberPathProperty =
         AvaloniaProperty.Register<TabBar, string?>(nameof(HeaderMemberPath));
 
@@ -173,6 +183,11 @@ public class TabBar : SelectingItemsControl
 		set => SetValue(ContentTemplateProperty, value);
 	}
 
+	public IDataTemplate? HeaderTemplate {
+		get => GetValue(HeaderTemplateProperty);
+		set => SetValue(HeaderTemplateProperty, value);
+	}
+
 	public string? HeaderMemberPath {
 		get => GetValue(HeaderMemberPathProperty);
 		set => SetValue(HeaderMemberPathProperty, value);
@@ -222,6 +237,7 @@ public class TabBar : SelectingItemsControl
 		HeaderMemberPathProperty.Changed.AddClassHandler<TabBar>((x, _) => x.RefreshContainerMemberBindings());
 		IconSourceMemberPathProperty.Changed.AddClassHandler<TabBar>((x, _) => x.RefreshContainerMemberBindings());
 		ContentTemplateProperty.Changed.AddClassHandler<TabBar>((x, _) => x.RefreshContainerContentTemplates());
+		HeaderTemplateProperty.Changed.AddClassHandler<TabBar>((x, _) => x.RefreshContainerHeaderTemplates());
 		TabItemContextMenuProperty.Changed.AddClassHandler<TabBar>((x, _) => {
 			x._cachedContextMenu = null;
 			x.UpdateAllContainerMenus();
@@ -323,6 +339,9 @@ public class TabBar : SelectingItemsControl
             // 为标签页内容区域设置内容模板
             if (ContentTemplate != null)
                 tvi.SetCurrentValue(ContentControl.ContentTemplateProperty, ContentTemplate);
+            // header 模板。与 ContentTemplate 不同：没有 ItemTemplate 那样的回落物，
+            // 置 null 就是回落到 Header 字符串车道，因此 null 也无条件推下去。
+            tvi.SetCurrentValue(TabBarItem.HeaderTemplateProperty, HeaderTemplate);
         }
         else {
             // 直接子项模式。Avalonia 不会为"容器就是项"的情况调用
@@ -1120,6 +1139,22 @@ public class TabBar : SelectingItemsControl
             var item = ItemFromContainer(tvi);
             if (item != null && !ReferenceEquals(item, tvi))
                 tvi.SetCurrentValue(ContentControl.ContentTemplateProperty, template);
+        }
+    }
+
+    /// <summary>
+    /// HeaderTemplate 运行时变更后，同步到所有已实现容器。
+    /// 与 <see cref="RefreshContainerContentTemplates"/> 的差异：那里有
+    /// `ContentTemplate ?? ItemTemplate` 的回落，这里没有对应物 ——
+    /// 置 null 就是回落到 Header 字符串车道，所以 null 也无条件推下去。
+    /// </summary>
+    private void RefreshContainerHeaderTemplates()
+    {
+        for (int i = 0; i < ItemCount; i++) {
+            if (ContainerFromIndex(i) is not TabBarItem tvi) continue;
+            var item = ItemFromContainer(tvi);
+            if (item != null && !ReferenceEquals(item, tvi))
+                tvi.SetCurrentValue(TabBarItem.HeaderTemplateProperty, HeaderTemplate);
         }
     }
 
