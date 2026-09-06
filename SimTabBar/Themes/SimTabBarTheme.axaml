@@ -28,7 +28,7 @@
                     <x:Double x:Key="SimTabBarItemCompactWidth">36</x:Double>
                     <x:Double x:Key="SimTabBarItemFixedWidth">160</x:Double>
                     <Thickness x:Key="SimTabBarItemPadding">10,0,10,0</Thickness>
-                    <x:Double x:Key="SimTabBarItemCloseButtonSize">16</x:Double>
+                    <x:Double x:Key="SimTabBarItemCloseButtonSize">20</x:Double>
                     <x:Double x:Key="SimTabBarActiveIndicatorHeight">2</x:Double>
                 </ResourceDictionary>
 
@@ -178,7 +178,10 @@
                                                       HorizontalAlignment="Left"
                                                       TextBlock.Foreground="{TemplateBinding Foreground}" />
 
-                                    <!-- Close Button -->
+                                    <!-- Close Button
+                                         尺寸走 SimTabBarItemCloseButtonSize（默认 20×20），
+                                         ✕ 字形随尺寸同比放大（16 时 FontSize=10，20 时 12），
+                                         hover 背景块、命中区、字形三者天然同步。 -->
                                     <Button x:Name="PART_CloseButton"
                                             Grid.Column="2"
                                             Width="{DynamicResource SimTabBarItemCloseButtonSize}"
@@ -186,7 +189,7 @@
                                             Margin="6,0,0,0"
                                             VerticalAlignment="Center"
                                             Content="✕"
-                                            FontSize="10"
+                                            FontSize="12"
                                             Padding="0"
                                             Background="Transparent"
                                             BorderThickness="0"

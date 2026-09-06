@@ -323,4 +323,26 @@ public class TabViewCloseTests
 
         window.Close();
     }
+
+    [AvaloniaFact]
+    public void CloseButton_DefaultSize_Is20x20()
+    {
+        // 钉住默认主题资源 SimTabBarItemCloseButtonSize=20（16→20 的可点击区域调整）。
+        // 断言实测 Bounds 而非 Width 属性 —— 属性值即使被布局钳制也依然是设定值。
+        var (tabView, window) = TestHelper.CreateTabBarWithTabs(3);
+        tabView.CloseButtonOverlayMode = TabBarCloseButtonOverlayMode.Auto;
+        tabView.SelectedIndex = 0;
+        TestHelper.Pump(window);
+
+        var tab = tabView.ContainerFromIndex(0) as TabBarItem;
+        Assert.NotNull(tab);
+
+        var btn = FindCloseButton(tab!);
+        Assert.NotNull(btn);
+        Assert.True(btn!.IsVisible);
+        Assert.Equal(20, btn.Bounds.Width);
+        Assert.Equal(20, btn.Bounds.Height);
+
+        window.Close();
+    }
 }
