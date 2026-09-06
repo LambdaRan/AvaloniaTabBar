@@ -232,6 +232,14 @@
                 <Style Selector="^:compact">
                     <Setter Property="MinWidth" Value="{DynamicResource SimTabBarItemCompactWidth}" />
                 </Style>
+
+                <!-- Fixed 模式：显式宽度必须能低于基础 MinWidth(100)，否则被布局夹回。
+                     与 ^:compact 同一手法（见上方注释）。
+                     用 0 而非 SimTabBarItemFixedWidth —— 语义是「Fixed 即 Fixed」，
+                     资源被覆写成任何值都成立，也避免 MinWidth 与 Width 两个来源打架。 -->
+                <Style Selector="^:fixed">
+                    <Setter Property="MinWidth" Value="0" />
+                </Style>
                 <Style Selector="^:compact /template/ ContentPresenter#PART_HeaderPresenter">
                     <Setter Property="IsVisible" Value="False" />
                 </Style>
