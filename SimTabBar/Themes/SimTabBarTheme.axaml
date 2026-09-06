@@ -145,6 +145,14 @@
                 <Setter Property="MinWidth" Value="{DynamicResource SimTabBarItemMinWidth}" />
                 <Setter Property="Padding" Value="{DynamicResource SimTabBarItemPadding}" />
 
+                <!-- 拖动排序:非被拖项的让位/回位用 120ms 过渡平滑。
+                     :dragging 项在下方样式里把 Transitions 置空——被拖项必须跟手。 -->
+                <Setter Property="Transitions">
+                    <Transitions>
+                        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12" />
+                    </Transitions>
+                </Setter>
+
                 <!-- Template -->
                 <Setter Property="Template">
                     <ControlTemplate>
@@ -279,6 +287,16 @@
                 <!-- Show separator when separator pseudo-class is true -->
                 <Style Selector="^:separator /template/ Border#PART_Separator">
                     <Setter Property="IsVisible" Value="True" />
+                </Style>
+
+                <!-- 拖动排序:被拖项降透明度、提层级(ZIndex 是 Visual 的
+                     StyledProperty,Avalonia 12)、换光标;伪类移除时样式自动回退,
+                     代码无需逐项复位 ZIndex。 -->
+                <Style Selector="^:dragging">
+                    <Setter Property="Transitions" Value="{x:Null}" />
+                    <Setter Property="Opacity" Value="0.85" />
+                    <Setter Property="ZIndex" Value="1" />
+                    <Setter Property="Cursor" Value="SizeWestEast" />
                 </Style>
             </ControlTheme>
         </ResourceDictionary>

@@ -16,7 +16,11 @@ using SimTabBar.Controls;
 public static class TestAppBuilder
 {
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App>()
-        .UseHeadless(new AvaloniaHeadlessPlatformOptions())
+        // 真实渲染(Skia)。Avalonia 12 的指针命中测试基于合成器场景图,
+        // fake 后端在内容重排后不重录 hit 区,标签条重排后整条不可点;
+        // 真实渲染每帧重录,命中行为与真实应用一致。
+        .UseSkia()
+        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
         .AfterSetup(_ =>
         {
             var app = Application.Current!;

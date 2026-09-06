@@ -19,7 +19,7 @@ namespace SimTabBar.Controls;
 [TemplatePart("PART_CloseButton", typeof(Button))]
 [TemplatePart("PART_ActiveIndicator", typeof(Border))]
 [TemplatePart("PART_Separator", typeof(Border))]
-[PseudoClasses(PcSeparator, PcCompact, PcFixed, PcCloseCollapsed, PcCloseAlways, PcCloseOverlay, PcIcon)]
+[PseudoClasses(PcSeparator, PcCompact, PcFixed, PcCloseCollapsed, PcCloseAlways, PcCloseOverlay, PcIcon, PcDragging)]
 public class TabBarItem : ContentControl
 {
     // 伪类名必须以冒号开头，否则样式选择器（如 ^:compact）永远匹配不上。
@@ -30,6 +30,7 @@ public class TabBarItem : ContentControl
     internal const string PcCloseAlways = ":closealways";
     internal const string PcCloseOverlay = ":closeoverlay";
     internal const string PcIcon = ":icon";
+    internal const string PcDragging = ":dragging";
 
     public static readonly StyledProperty<object?> HeaderProperty =
         AvaloniaProperty.Register<TabBarItem, object?>(nameof(Header));
@@ -172,9 +173,19 @@ public class TabBarItem : ContentControl
                 // 把键盘焦点移到 TabBar，否则 TabBar.OnKeyDown 收不到事件，
                 // Ctrl+Tab / Ctrl+F4 等内置快捷键将完全失效。
                 parentTabBar.Focus(NavigationMethod.Pointer);
+
+                // 上报拖动观察。排除按在关闭按钮上的情况——
+                // 关闭点击不应演变成拖动。
+                if (!IsPressInsideCloseButton(e.Source))
+                    parentTabBar.BeginReorderWatch(this, e);
             }
         }
     }
+
+    private bool IsPressInsideCloseButton(object? source) =>
+        _closeButton != null &&
+        source is Visual v &&
+        (ReferenceEquals(v, _closeButton) || _closeButton.IsVisualAncestorOf(v));
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
@@ -351,6 +362,12 @@ public class TabBarItem : ContentControl
     }
 
     /// <summary>
+    /// 拖动排序视觉状态。伪类驱动主题:Opacity/ZIndex/Cursor,
+    /// 并排除邻居过渡(被拖项必须跟手,不能带 120ms 动画滞后)。
+    /// </summary>
+    internal void SetDragging(bool dragging) => PseudoClasses.Set(PcDragging, dragging);
+
+    /// <summary>
     /// 把 HeaderMemberPath / IconSourceMemberPath 绑定到数据项上。
     /// 用真正的绑定而非一次性反射取值，这样数据项的属性变更（INotifyPropertyChanged）、
     /// 嵌套路径（"A.B.C"）以及运行时修改路径都能生效。
@@ -401,6 +418,10 @@ public class TabBarItem : ContentControl
         SetCompact(false);
         SetFixed(false);
         SetSeparatorState(false);
+        // 拖动视觉一并复位:容器可能被回收复用,
+        // :dragging 与平移残留会脏化下一个数据项。
+        SetDragging(false);
+        RenderTransform = null;
     }
 
     protected override void OnPointerEntered(PointerEventArgs e)

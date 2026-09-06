@@ -306,6 +306,13 @@ public class TabBar : SelectingItemsControl
     private double _dragStartX;
     private double _dragStartOffset;
 
+    private TabReorderController? _reorder;
+    private TabReorderController Reorder => _reorder ??= new TabReorderController(this);
+
+    /// <summary>测试与内部协作访问器。</summary>
+    internal TabReorderController ReorderController => Reorder;
+    internal ScrollViewer? TabStripScrollViewer => _tabStripScrollViewer;
+
     private double _cachedMinWidth = 100;
     private double _cachedMaxWidth = 240;
     private double _cachedCompactWidth = 36;
@@ -611,6 +618,9 @@ public class TabBar : SelectingItemsControl
         }
         return container;
     }
+
+    /// <summary>由 TabBarItem 在左键按下时调用,进入拖动观察状态。</summary>
+    internal void BeginReorderWatch(TabBarItem item, PointerPressedEventArgs e) => Reorder.BeginWatch(item, e);
 
     private void OnTabItemCloseRequested(object? sender, TabBarCloseRequestedEventArgs e)
     {
@@ -1052,6 +1062,9 @@ public class TabBar : SelectingItemsControl
         if (_isDraggingThumb) {
             OnScrollThumbPointerMoved(this, e);
         }
+        else {
+            _reorder?.OnPointerMoved(e);
+        }
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
@@ -1060,12 +1073,16 @@ public class TabBar : SelectingItemsControl
         if (_isDraggingThumb) {
             OnScrollThumbPointerReleased(this, e);
         }
+        else {
+            _reorder?.OnPointerReleased(e);
+        }
     }
 
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
     {
         base.OnPointerCaptureLost(e);
         EndThumbDrag();
+        _reorder?.Cancel();
     }
 
     protected override void OnKeyDown(KeyEventArgs e)

@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.*" />
     <PackageReference Include="Avalonia.Headless.XUnit" Version="12.*" />
+    <PackageReference Include="Avalonia.Skia" Version="12.*" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.*" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
     <PackageReference Include="xunit.v3" Version="3.*" />
