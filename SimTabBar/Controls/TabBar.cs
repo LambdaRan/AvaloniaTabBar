@@ -253,6 +253,7 @@ public class TabBar : SelectingItemsControl
     private const string ResourceKeyMinWidth = "SimTabBarItemMinWidth";
     private const string ResourceKeyMaxWidth = "SimTabBarItemMaxWidth";
     private const string ResourceKeyCompactWidth = "SimTabBarItemCompactWidth";
+    private const string ResourceKeyFixedWidth = "SimTabBarItemFixedWidth";
 
     private const double WheelScrollAmount = 50;
     private const double ThumbHoverOpacity = 0.8;
@@ -270,6 +271,7 @@ public class TabBar : SelectingItemsControl
     private double _cachedMinWidth = 100;
     private double _cachedMaxWidth = 240;
     private double _cachedCompactWidth = 36;
+    private double _cachedFixedWidth = 160;
 
     private NotifyCollectionChangedEventHandler? _itemsCollectionChanged;
 
@@ -502,6 +504,7 @@ public class TabBar : SelectingItemsControl
         if (this.TryFindResource(ResourceKeyMinWidth, out var mw) && mw is double d1) _cachedMinWidth = d1;
         if (this.TryFindResource(ResourceKeyMaxWidth, out var mxw) && mxw is double d2) _cachedMaxWidth = d2;
         if (this.TryFindResource(ResourceKeyCompactWidth, out var cw) && cw is double d3) _cachedCompactWidth = d3;
+        if (this.TryFindResource(ResourceKeyFixedWidth, out var fw) && fw is double d4) _cachedFixedWidth = d4;
     }
 
     /// <summary>
@@ -726,7 +729,13 @@ public class TabBar : SelectingItemsControl
         double minWidth = _cachedMinWidth;
         double maxWidth = _cachedMaxWidth;
         double compactWidth = _cachedCompactWidth;
+        double fixedWidth = _cachedFixedWidth;
         double equalTabWidth = 0;
+
+        // Fixed 是常量宽度，不参与 availableWidth / count 的算式，
+        // 因此不受 canUpdateWidth 门控 —— 首次布局前（viewport 还是 0）
+        // 标签就能拿到正确宽度，少一个「视口未就绪 → 宽度暂缺」的中间态。
+        bool fixedMode = widthMode == TabBarWidthMode.Fixed;
 
         if (canUpdateWidth && widthMode == TabBarWidthMode.Equal) {
             // 必须向下取整到整数设备像素。UseLayoutRounding 默认为 true，布局会把
@@ -738,8 +747,17 @@ public class TabBar : SelectingItemsControl
         for (int i = 0; i < count; i++) {
             if (ContainerFromIndex(i) is not TabBarItem tvi) continue;
 
-            // === 宽度（需要视口宽度）===
-            if (canUpdateWidth) {
+            // === 宽度 ===
+            // :fixed 无条件、幂等地写。必须放在 canUpdateWidth 门控之外，否则
+            // 视口尚未就绪时从 Fixed 切走的容器会残留 MinWidth=0，
+            // 让 Equal 的钳位下限失效。
+            tvi.SetFixed(fixedMode);
+
+            if (fixedMode) {
+                tvi.Width = fixedWidth;
+                tvi.SetCompact(false);
+            }
+            else if (canUpdateWidth) {
                 switch (widthMode)
                 {
                     case TabBarWidthMode.Equal:

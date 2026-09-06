@@ -21,11 +21,12 @@
                     <SolidColorBrush x:Key="SimTabBarCloseButtonBackgroundPointerOver" Color="#3C3C3C" />
                     <SolidColorBrush x:Key="SimTabBarSeparatorBrush" Color="#606060" />
 
-                    <!-- Dimensions (7) -->
+                    <!-- Dimensions (8) -->
                     <x:Double x:Key="SimTabBarItemMinHeight">35</x:Double>
                     <x:Double x:Key="SimTabBarItemMinWidth">100</x:Double>
                     <x:Double x:Key="SimTabBarItemMaxWidth">240</x:Double>
                     <x:Double x:Key="SimTabBarItemCompactWidth">36</x:Double>
+                    <x:Double x:Key="SimTabBarItemFixedWidth">160</x:Double>
                     <Thickness x:Key="SimTabBarItemPadding">10,0,10,0</Thickness>
                     <x:Double x:Key="SimTabBarItemCloseButtonSize">16</x:Double>
                     <x:Double x:Key="SimTabBarActiveIndicatorHeight">2</x:Double>

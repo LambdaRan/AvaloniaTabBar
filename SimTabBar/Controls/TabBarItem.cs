@@ -19,12 +19,13 @@ namespace SimTabBar.Controls;
 [TemplatePart("PART_CloseButton", typeof(Button))]
 [TemplatePart("PART_ActiveIndicator", typeof(Border))]
 [TemplatePart("PART_Separator", typeof(Border))]
-[PseudoClasses(PcSeparator, PcCompact, PcCloseCollapsed, PcCloseAlways, PcCloseOverlay, PcIcon)]
+[PseudoClasses(PcSeparator, PcCompact, PcFixed, PcCloseCollapsed, PcCloseAlways, PcCloseOverlay, PcIcon)]
 public class TabBarItem : ContentControl
 {
     // 伪类名必须以冒号开头，否则样式选择器（如 ^:compact）永远匹配不上。
     internal const string PcSeparator = ":separator";
     internal const string PcCompact = ":compact";
+    internal const string PcFixed = ":fixed";
     internal const string PcCloseCollapsed = ":closecollapsed";
     internal const string PcCloseAlways = ":closealways";
     internal const string PcCloseOverlay = ":closeoverlay";
@@ -316,6 +317,12 @@ public class TabBarItem : ContentControl
     }
 
     /// <summary>
+    /// 固定宽度模式。伪类的作用是让主题放开 ControlTheme 施加的 MinWidth，
+    /// 否则低于 MinWidth 的显式宽度会被布局静默夹回。
+    /// </summary>
+    internal void SetFixed(bool isFixed) => PseudoClasses.Set(PcFixed, isFixed);
+
+    /// <summary>
     /// 根据覆盖模式设置完整的关闭按钮视觉状态。
     /// 由父级 TabBar 调用以协调关闭按钮可见性。
     /// </summary>
@@ -392,6 +399,7 @@ public class TabBarItem : ContentControl
     {
         Width = double.NaN;
         SetCompact(false);
+        SetFixed(false);
         SetSeparatorState(false);
     }
 
