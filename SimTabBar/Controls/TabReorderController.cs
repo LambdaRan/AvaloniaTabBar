@@ -100,7 +100,7 @@ internal sealed class TabReorderController
     internal void Cancel()
     {
         if (_watched == null && _dragged == null) return;
-        ClearVisuals();
+        ClearVisuals(immediate: false);
         ResetState();
     }
 
@@ -221,7 +221,8 @@ internal sealed class TabReorderController
 
         // 先复位视觉再改集合:直接子项模式的 RemoveAt+Insert 会触发
         // ReleaseContainer+重 Prepare,残留的 RenderTransform 会脏化新位置。
-        ClearVisuals();
+        // immediate=true:邻居让位 transform 必须与布局重排同帧瞬时归零,否则过冲抖动。
+        ClearVisuals(immediate: true);
         ResetState();
 
         // 拖动期间应用可能移除了被拖项(容器已不在 Items 中)→ 放弃提交。
@@ -265,13 +266,13 @@ internal sealed class TabReorderController
         _tabBar.RaiseEvent(args);
     }
 
-    private void ClearVisuals()
+    private void ClearVisuals(bool immediate)
     {
         for (int i = 0; i < _tabBar.ItemCount; i++)
         {
             if (_tabBar.ContainerFromIndex(i) is TabBarItem tvi)
             {
-                tvi.RenderTransform = TransformOperations.Identity;
+                ResetTransform(tvi, immediate);
                 tvi.SetDragging(false);
             }
         }
@@ -280,11 +281,31 @@ internal sealed class TabReorderController
         // ItemsSource 模式下容器会被回收复用,残留 :dragging 会脏化下一个数据项。
         if (_dragged != null)
         {
-            _dragged.RenderTransform = TransformOperations.Identity;
+            ResetTransform(_dragged, immediate);
             _dragged.SetDragging(false);
         }
 
         StopAutoScroll();
+    }
+
+    /// <summary>
+    /// 复位容器 RenderTransform。immediate=true 时临时摘除 Transitions 让复位瞬时生效——
+    /// 用于提交路径:邻居的让位 transform(+一个宽)必须与布局重排(槽位移动)在同一帧归零,
+    /// 否则它会走 120ms 过渡衰减,使首帧呈现「新槽位基座 + 尚未衰减的残留 transform」=
+    /// 向右过冲一格再滑回,即肉眼可见的抖动。被拖项因 :dragging 已置空过渡,本就瞬时复位。
+    /// 取消路径传 immediate=false:不改集合、无布局重排,保留过渡让邻居平滑滑回原位。
+    /// </summary>
+    private static void ResetTransform(TabBarItem tvi, bool immediate)
+    {
+        if (!immediate)
+        {
+            tvi.RenderTransform = TransformOperations.Identity;
+            return;
+        }
+
+        tvi.Transitions = null;
+        tvi.RenderTransform = TransformOperations.Identity;
+        tvi.ClearValue(StyledElement.TransitionsProperty);   // 还原主题过渡,供下次拖动让位动画
     }
 
     private void ResetState()

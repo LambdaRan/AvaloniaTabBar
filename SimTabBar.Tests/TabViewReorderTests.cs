@@ -518,4 +518,39 @@ public class TabViewReorderTests
         window.MouseUp(edge, MouseButton.Left);
         window.Close();
     }
+
+    [AvaloniaFact]
+    public void Reorder_Commit_NeighborDoesNotOvershoot()
+    {
+        // 回归:拖 tab3 到 tab1、tab2 之间(target=1)。拖动中右邻 tab2 已让位到
+        // 它的最终位置(slot2)。提交时 tab2 的布局槽位从 index1 移到 index2,但它的
+        // 让位 RenderTransform(+一个宽)必须「瞬时」复位——若走 120ms 过渡衰减,首帧
+        // 会呈现 tab2 = 新 slot2 基座 + 尚未衰减的 +宽 transform = 向右过冲一格再滑回,
+        // 即可见的「向右抖动」。被拖项因 :dragging 置空过渡本就瞬时复位,唯邻居缺此保护。
+        var (tabView, window, docs) = CreateItemsSourceTabBar(3);
+        var tab1 = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        var tab2 = (TabBarItem)tabView.ContainerFromIndex(1)!;   // 让位邻居
+        var tab3 = (TabBarItem)tabView.ContainerFromIndex(2)!;   // 被拖项
+        var start = CenterOf(tab3, window);
+        double targetX = (CenterOf(tab1, window).X + CenterOf(tab2, window).X) / 2;
+
+        window.MouseDown(start, MouseButton.Left);
+        window.MouseMove(start.WithX(start.X - 10), RawInputModifiers.LeftMouseButton);
+        window.MouseMove(start.WithX(targetX), RawInputModifiers.LeftMouseButton);
+        Assert.Equal(1, tabView.ReorderController.TargetIndex);   // 场景前提:落到 index1
+
+        window.MouseUp(start.WithX(targetX), MouseButton.Left);   // 提交
+        double centerOnCommit = CenterOf(tab2, window).X;         // 提交帧(任何动画帧之前)
+
+        for (int k = 0; k < 200; k++) TestHelper.Pump(window);    // 让位复位过渡跑完
+        double centerSettled = CenterOf(tab2, window).X;          // 稳定位置(slot2)
+
+        // 无过冲:提交帧邻居位置应等于稳定位置(它本就已让位到位,不该再动)。
+        // 有缺陷时:提交帧 = 稳定位 + 约一格过冲(实测差 ~67px),两者不等。
+        Assert.InRange(centerOnCommit, centerSettled - 2, centerSettled + 2);
+
+        // 提交结果本身仍正确
+        Assert.Equal(new[] { "Doc 1", "Doc 3", "Doc 2" }, docs.Select(d => d.Title));
+        window.Close();
+    }
 }
