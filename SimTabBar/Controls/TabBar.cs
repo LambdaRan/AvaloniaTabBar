@@ -86,6 +86,20 @@ public class TabBar : SelectingItemsControl
 
 	#region 样式属性
 
+	public static readonly StyledProperty<bool> CanReorderTabsProperty =
+        AvaloniaProperty.Register<TabBar, bool>(nameof(CanReorderTabs), false);
+
+    /// <summary>
+    /// 是否允许拖动标签改变顺序。默认 false。
+    /// 开启后：左键按住标签水平拖动超过阈值即进入拖动，释放时提交新顺序。
+    /// ItemsSource 模式要求源集合是可变 IList（非只读、非固定大小），否则拒绝启动拖动。
+    /// </summary>
+    public bool CanReorderTabs
+    {
+        get => GetValue(CanReorderTabsProperty);
+        set => SetValue(CanReorderTabsProperty, value);
+    }
+
 	public static readonly StyledProperty<TabBarWidthMode> TabWidthModeProperty =
         AvaloniaProperty.Register<TabBar, TabBarWidthMode>(nameof(TabWidthMode), TabBarWidthMode.Equal);
 
@@ -210,6 +224,28 @@ public class TabBar : SelectingItemsControl
     {
         add => AddHandler(TabCloseRequestedEvent, value);
         remove => RemoveHandler(TabCloseRequestedEvent, value);
+    }
+
+    public static readonly RoutedEvent<TabBarDragStartingEventArgs> TabDragStartingEvent =
+        RoutedEvent.Register<TabBar, TabBarDragStartingEventArgs>(
+            nameof(TabDragStarting), RoutingStrategies.Bubble);
+
+    public static readonly RoutedEvent<TabBarReorderCompletedEventArgs> TabReorderCompletedEvent =
+        RoutedEvent.Register<TabBar, TabBarReorderCompletedEventArgs>(
+            nameof(TabReorderCompleted), RoutingStrategies.Bubble);
+
+    /// <summary>拖动排序即将开始。Cancel=true 阻止本次拖动。</summary>
+    public event EventHandler<TabBarDragStartingEventArgs> TabDragStarting
+    {
+        add => AddHandler(TabDragStartingEvent, value);
+        remove => RemoveHandler(TabDragStartingEvent, value);
+    }
+
+    /// <summary>拖动排序已提交。仅在实际发生换位时触发。</summary>
+    public event EventHandler<TabBarReorderCompletedEventArgs> TabReorderCompleted
+    {
+        add => AddHandler(TabReorderCompletedEvent, value);
+        remove => RemoveHandler(TabReorderCompletedEvent, value);
     }
 
 	public TabBar()
@@ -566,7 +602,7 @@ public class TabBar : SelectingItemsControl
     /// 绝不能用容器的 DataContext —— 直接子项模式下它是从父级继承来的
     /// ViewModel，所有标签页都会拿到同一个对象。
     /// </summary>
-    internal object ResolveCloseItem(TabBarItem container)
+    internal object ResolveItem(TabBarItem container)
     {
         if (ItemsSource != null) {
             var item = ItemFromContainer(container);

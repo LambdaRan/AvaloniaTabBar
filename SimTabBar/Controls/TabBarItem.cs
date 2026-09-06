@@ -149,7 +149,7 @@ public class TabBarItem : ContentControl
         // Item 的语义由父级 TabBar 决定：ItemsSource 模式下是数据项，
         // 直接子项模式下是本容器自身。不要用 DataContext —— 在直接子项
         // 模式下它是从父级继承来的 ViewModel，所有标签页都是同一个对象。
-        var item = (_parentTabBar ?? this.FindAncestorOfType<TabBar>())?.ResolveCloseItem(this)
+        var item = (_parentTabBar ?? this.FindAncestorOfType<TabBar>())?.ResolveItem(this)
                    ?? (object)this;
 
         var args = new TabBarCloseRequestedEventArgs(item, this);
