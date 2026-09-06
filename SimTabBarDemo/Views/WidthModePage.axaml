@@ -4,7 +4,7 @@
              x:Class="SimTabBarDemo.Views.WidthModePage">
 
     <Grid RowDefinitions="Auto,Auto,*">
-        <TextBlock Grid.Row="0" Text="宽度模式：Equal / SizeToContent / Compact" FontSize="18" Margin="16,16,16,8" />
+        <TextBlock Grid.Row="0" Text="宽度模式：Equal / SizeToContent / Compact / Fixed" FontSize="18" Margin="16,16,16,8" />
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="16" Margin="16,0,16,8">
             <RadioButton Content="Equal" IsChecked="True"
@@ -16,6 +16,9 @@
             <RadioButton Content="Compact"
                          GroupName="WidthMode"
                          IsCheckedChanged="OnCompactChecked" />
+            <RadioButton Content="Fixed"
+                         GroupName="WidthMode"
+                         IsCheckedChanged="OnFixedChecked" />
         </StackPanel>
 
         <controls:TabBar Grid.Row="2"

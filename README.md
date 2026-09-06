@@ -6,7 +6,8 @@
 
 ## 功能特性
 
-- **宽度模式** — Equal / SizeToContent / Compact 三种标签页宽度策略
+- **宽度模式** — Equal / SizeToContent / Compact / Fixed 四种标签页宽度策略
+- **标签头模板** — `HeaderTemplate` 让标签头渲染任意多元素（如状态圆点 + 标题），模板上下文为数据项，可对局部元素单独着色
 - **关闭按钮模式** — Auto / OnPointerOver / Always 三种显示方式
 - **右键菜单** — 关闭 / 关闭其他 / 关闭全部
 - **扩展区域** — TabStrip Header / Footer 可插入自定义内容

@@ -29,6 +29,12 @@ public partial class WidthModePage : UserControl
             SetMode(TabBarWidthMode.Compact);
     }
 
+    private void OnFixedChecked(object? sender, RoutedEventArgs e)
+    {
+        if (sender is RadioButton { IsChecked: true })
+            SetMode(TabBarWidthMode.Fixed);
+    }
+
     private void SetMode(TabBarWidthMode mode)
     {
         var tabView = this.FindControl<TabBar>("WidthModeSimTabBar");

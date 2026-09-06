@@ -5,15 +5,32 @@
              x:Class="SimTabBarDemo.Views.BindingTabPage"
              x:DataType="vm:BindingTabViewModel">
 
-    <Grid RowDefinitions="Auto,*">
-        <TextBlock Grid.Row="0" Text="数据绑定：ItemsSource + HeaderMemberPath" FontSize="18" Margin="16,16,16,8" />
+    <Grid RowDefinitions="Auto,Auto,*">
+        <TextBlock Grid.Row="0" Text="数据绑定：ItemsSource + HeaderMemberPath + HeaderTemplate" FontSize="18" Margin="16,16,16,8" />
 
-        <controls:TabBar Grid.Row="1"
+        <!-- 切换选中项的 IsModified，观察标签头绿点的亮灭。
+             绿点用 #4CAF50 独立着色，不跟随标签头文字的前景（选中白 / 未选灰）。 -->
+        <Button Grid.Row="1" Content="切换绿点（IsModified）"
+                Command="{Binding ToggleModifiedCommand}"
+                Margin="16,0,16,8" />
+
+        <controls:TabBar Grid.Row="2"
                           ItemsSource="{Binding Documents}"
                           SelectedItem="{Binding SelectedDocument}"
                           HeaderMemberPath="Title"
                           AddTabButtonCommand="{Binding AddDocumentCommand}"
                           Margin="16">
+            <controls:TabBar.HeaderTemplate>
+                <DataTemplate DataType="vm:DocumentItem">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Ellipse Width="8" Height="8"
+                                 Fill="#4CAF50"
+                                 IsVisible="{Binding IsModified}"
+                                 VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </DataTemplate>
+            </controls:TabBar.HeaderTemplate>
             <controls:TabBar.ContentTemplate>
                 <DataTemplate DataType="vm:DocumentItem">
                     <StackPanel Margin="16">

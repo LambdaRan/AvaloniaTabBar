@@ -29,12 +29,25 @@ public partial class BindingTabViewModel : ObservableObject
         Documents.Add(doc);
         SelectedDocument = doc;
     }
+
+    [RelayCommand]
+    private void ToggleModified()
+    {
+        if (SelectedDocument != null)
+            SelectedDocument.IsModified = !SelectedDocument.IsModified;
+    }
 }
 
-public class DocumentItem
+public partial class DocumentItem : ObservableObject
 {
     public string Title { get; }
     public string Description { get; }
+
+    /// <summary>
+    /// 驱动 header 模板里的绿点。对应 Armpi 的 attach 状态。
+    /// </summary>
+    [ObservableProperty]
+    private bool _isModified;
 
     public DocumentItem(string title, string description)
     {
