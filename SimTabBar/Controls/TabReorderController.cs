@@ -209,6 +209,8 @@ internal sealed class TabReorderController
 
             tvi.RenderTransform = shift == 0 ? TransformOperations.Identity : Translate(shift);
         }
+
+        UpdateAutoScroll();
     }
 
     private void Commit()
@@ -291,6 +293,50 @@ internal sealed class TabReorderController
         StopAutoScroll();
     }
 
+    /// <summary>
+    /// 指针进入 ScrollViewer 视口左右 24px 边缘区且有横向溢出时,
+    /// 启动 50ms 定时滚动;离开边缘区或溢出消失即停。
+    /// </summary>
+    private void UpdateAutoScroll()
+    {
+        var sv = ScrollViewer;
+        if (sv == null || _dragged == null)
+        {
+            StopAutoScroll();
+            return;
+        }
+
+        double maxOffset = sv.Extent.Width - sv.Viewport.Width;
+        if (maxOffset <= 0)
+        {
+            StopAutoScroll();
+            return;
+        }
+
+        var origin = sv.TranslatePoint(new Point(0, 0), _tabBar);
+        if (origin == null)
+        {
+            StopAutoScroll();
+            return;
+        }
+
+        double x = _lastPointerPos.X;
+        double left = origin.Value.X;
+        double right = origin.Value.X + sv.Bounds.Width;
+        _autoScrollDirection = x < left + EdgeZone ? -1 : x > right - EdgeZone ? 1 : 0;
+
+        if (_autoScrollDirection == 0) StopAutoScroll();
+        else StartAutoScroll();
+    }
+
+    private void StartAutoScroll()
+    {
+        if (_autoScrollTimer != null) return;
+        _autoScrollTimer = new DispatcherTimer { Interval = AutoScrollInterval };
+        _autoScrollTimer.Tick += (_, _) => PerformAutoScrollTick();
+        _autoScrollTimer.Start();
+    }
+
     private void StopAutoScroll()
     {
         _autoScrollDirection = 0;
@@ -299,8 +345,22 @@ internal sealed class TabReorderController
         _autoScrollTimer = null;
     }
 
-    /// <summary>供 Task 6 的边缘自动滚动与测试调用。当前为空操作。</summary>
+    /// <summary>
+    /// 滚动一个步长并重算拖动几何——Offset 变化使指针的内容空间坐标改变,
+    /// 被拖项跟随位置与让位目标索引都必须跟着更新。测试可直接调用。
+    /// </summary>
     internal void PerformAutoScrollTick()
     {
+        var sv = ScrollViewer;
+        if (sv == null || _dragged == null || _autoScrollDirection == 0) return;
+
+        double maxOffset = sv.Extent.Width - sv.Viewport.Width;
+        if (maxOffset <= 0) return;
+
+        double newOffset = Math.Clamp(sv.Offset.X + _autoScrollDirection * AutoScrollStep, 0, maxOffset);
+        if (newOffset == sv.Offset.X) return;
+
+        sv.Offset = new Vector(newOffset, sv.Offset.Y);
+        UpdateDrag();
     }
 }

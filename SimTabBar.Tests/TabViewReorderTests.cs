@@ -456,4 +456,32 @@ public class TabViewReorderTests
         Assert.Equal(new[] { "Doc 2", "Doc 3", "Doc 4" }, docs.Select(d => d.Title));
         window.Close();
     }
+
+    [AvaloniaFact]
+    public void Reorder_EdgeAutoScroll_PendsAndTicks()
+    {
+        // 12 个标签 × MinWidth 100 = 1200 > 视口约 760 → 横向溢出
+        var (tabView, window, _) = CreateItemsSourceTabBar(12);
+        var sv = tabView.TabStripScrollViewer!;
+        Assert.True(sv.Extent.Width > sv.Viewport.Width);
+
+        var tab0 = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        var start = CenterOf(tab0, window);
+        window.MouseDown(start, MouseButton.Left);
+        window.MouseMove(start.WithX(start.X + 10), RawInputModifiers.LeftMouseButton);
+        Assert.False(tabView.ReorderController.IsAutoScrollPending);
+
+        // 拖到 ScrollViewer 右缘 5px 内(边缘区 24px)
+        var svOrigin = sv.TranslatePoint(new Point(0, 0), window)!.Value;
+        var edge = new Point(svOrigin.X + sv.Bounds.Width - 5, start.Y);
+        window.MouseMove(edge, RawInputModifiers.LeftMouseButton);
+        Assert.True(tabView.ReorderController.IsAutoScrollPending);
+
+        double offsetBefore = sv.Offset.X;
+        tabView.ReorderController.PerformAutoScrollTick();
+        Assert.True(sv.Offset.X > offsetBefore);
+
+        window.MouseUp(edge, MouseButton.Left);
+        window.Close();
+    }
 }
