@@ -236,15 +236,20 @@ internal sealed class TabReorderController
 
         // 双模式统一 RemoveAt+Insert:Avalonia 12 的 ItemCollection 没有 Move,
         // IList 接口同样没有(ObservableCollection.Move 是类自有成员)。
+        int insertAt;
         if (_tabBar.ItemsSource is IList source)
         {
             source.RemoveAt(oldIndex);
-            source.Insert(newIndex, item);
+            // 钳位:拖动中应用可能移除了「非被拖项」使列表收缩,陈旧的 newIndex
+            // 会越界。Math.Min 给到 append 语义,Insert 永不抛(集合变更守卫只覆盖被拖项)。
+            insertAt = Math.Min(newIndex, source.Count);
+            source.Insert(insertAt, item);
         }
         else
         {
             _tabBar.Items.RemoveAt(oldIndex);
-            _tabBar.Items.Insert(newIndex, item);
+            insertAt = Math.Min(newIndex, _tabBar.Items.Count);
+            _tabBar.Items.Insert(insertAt, item);
         }
 
         // Remove 会清掉选中(按对象跟踪的 SelectedItem 被移除),Insert 不会恢复,
@@ -253,7 +258,7 @@ internal sealed class TabReorderController
 
         // 事件在集合变更与选中恢复之后发出:应用收到时 UI 已是最终状态,
         // 可直接做顺序持久化。
-        var args = new TabBarReorderCompletedEventArgs(item, dragged, oldIndex, newIndex)
+        var args = new TabBarReorderCompletedEventArgs(item, dragged, oldIndex, insertAt)
         {
             RoutedEvent = TabBar.TabReorderCompletedEvent
         };

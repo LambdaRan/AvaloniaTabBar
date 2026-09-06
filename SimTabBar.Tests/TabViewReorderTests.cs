@@ -458,6 +458,40 @@ public class TabViewReorderTests
     }
 
     [AvaloniaFact]
+    public void Reorder_NonDraggedItemRemovedDuringDrag_CommitClampsNewIndex()
+    {
+        // 回归:拖动中应用移除「非被拖项」使列表收缩(3 项),陈旧的
+        // _targetIndex=count-1 变成越界索引,提交 Insert 必须钳位到 count
+        // (append 语义)而不是抛 ArgumentOutOfRangeException。
+        var (tabView, window, docs) = CreateItemsSourceTabBar();
+        TabBarReorderCompletedEventArgs? completed = null;
+        tabView.TabReorderCompleted += (_, e) => completed = e;
+
+        var tab0 = (TabBarItem)tabView.ContainerFromIndex(0)!;
+        var tab3 = (TabBarItem)tabView.ContainerFromIndex(3)!;
+        var start = CenterOf(tab0, window);
+        window.MouseDown(start, MouseButton.Left);
+        var at = start.WithX(start.X + 10);   // 越过阈值进入拖动
+        window.MouseMove(at, RawInputModifiers.LeftMouseButton);
+
+        // 拖过最后一个标签中心 → target=3(=count-1,与边缘区停驻场景一致)
+        var far = CenterOf(tab3, window).WithX(CenterOf(tab3, window).X + 50);
+        window.MouseMove(far, RawInputModifiers.LeftMouseButton);
+        Assert.Equal(3, tabView.ReorderController.TargetIndex);
+
+        docs.RemoveAt(2);                     // 拖动中应用移除非被拖项 → 列表收缩
+        TestHelper.Pump(window);
+
+        window.MouseUp(far, MouseButton.Left);   // 不得抛越界异常
+
+        Assert.NotNull(completed);
+        Assert.Equal(0, completed!.OldIndex);
+        Assert.Equal(2, completed.NewIndex);     // 钳位后的真实落点(count-1)
+        Assert.Equal(new[] { "Doc 2", "Doc 4", "Doc 1" }, docs.Select(d => d.Title));
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void Reorder_EdgeAutoScroll_PendsAndTicks()
     {
         // 12 个标签 × MinWidth 100 = 1200 > 视口约 760 → 横向溢出
