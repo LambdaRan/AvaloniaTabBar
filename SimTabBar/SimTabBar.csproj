@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -12,9 +12,14 @@
     <IsPackable>true</IsPackable>
     <PackageId>SimTabBar</PackageId>
     <!-- VersionPrefix (not Version) so that `dotnet pack -p:VersionSuffix=ci.N`
-         produces 0.2.0-ci.N. An explicit <Version> would silently swallow the
-         suffix and every CI run would publish the same version. -->
-    <VersionPrefix>0.2.0</VersionPrefix>
+         produces 0.3.1-ci.N. An explicit <Version> would silently swallow the
+         suffix and every CI run would publish the same version.
+
+         这里是**本地构建的程序集版本下限**，发布线走到哪就跟到哪：它停在
+         0.2.0 时，不带 -p:Version 的构建（本地 pack、以及 CI 的 build 步骤）
+         会把 DLL 戳成 0.2.0 —— 0.3.1 包里 DLL 写着 0.2.0 的另一半原因就在这。
+         正式的版本号由 CI 的 build/pack 两步用 -p:Version 覆盖（见 build.yml）。 -->
+    <VersionPrefix>0.3.1</VersionPrefix>
     <Authors>LambdaRan</Authors>
     <Description>A VS Code-style tab bar control library for Avalonia. Features multiple width modes, close button modes, context menus, keyboard navigation, pinned tabs, and theme support.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

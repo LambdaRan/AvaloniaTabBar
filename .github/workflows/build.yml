@@ -23,8 +23,17 @@ jobs:
       - name: Restore
         run: dotnet restore AvaloniaTabBar.slnx
 
+      # 版本参数必须喂给 build，不能只喂 pack：pack 带 --no-build，包里的
+      # DLL 就是这一步 build 出来的那一个 —— 只给 pack 传 -p:Version 只会改
+      # nuspec 的版本号，程序集里仍是 VersionPrefix（0.3.1 包里的 DLL 写着
+      # 0.2.0 就是这么来的）。两步用同一套参数，包与程序集才不会分家。
       - name: Build
-        run: dotnet build AvaloniaTabBar.slnx -c Release --no-restore
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            dotnet build AvaloniaTabBar.slnx -c Release --no-restore -p:Version=${{ inputs.version }}
+          else
+            dotnet build AvaloniaTabBar.slnx -c Release --no-restore -p:VersionSuffix=ci.${{ github.run_number }}
+          fi
 
       # The test suite is the gate for the pack step below; without it a broken
       # control library would still be published as a package.
