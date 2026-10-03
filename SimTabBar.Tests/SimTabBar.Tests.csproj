@@ -5,13 +5,22 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
+    <!-- 测试宿主钉死 Avalonia 版本，**不要**改回 12.* 浮动。
+         2026-10-03：浮动漂到 12.1.3 后，Avalonia.Headless 加载不了 SimTabBar
+         程序集里编译期的 XAML —— 每条测试都在 AppBuilder.SetupUnsafe 里
+         抛 XamlLoadException: No precompiled XAML found for
+         avares://SimTabBar/Themes/SimTabBarTheme.axaml（155 条全灭）。
+         同时刻的桌面路径（SimTabBarDemo，12.1.3）正常，所以这是 headless
+         宿主的回归，不是本库的 XAML；12.1.2 全绿 —— 上游修好前别放开浮动。
+         库工程仍走 [12.1.0,13.0.0) 的范围，它自己构建用下界（打出来的包不受影响）。 -->
+    <AvaloniaVersion>12.1.2</AvaloniaVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="12.*" />
-    <PackageReference Include="Avalonia.Headless.XUnit" Version="12.*" />
-    <PackageReference Include="Avalonia.Skia" Version="12.*" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.*" />
+    <PackageReference Include="Avalonia" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Headless.XUnit" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Skia" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
     <PackageReference Include="xunit.v3" Version="3.*" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.*">
