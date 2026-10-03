@@ -107,7 +107,10 @@
                                                   VerticalAlignment="Center"
                                                   Margin="0,0,4,0" />
 
-                                <!-- Add button -->
+                                <!-- Add button
+                                     两轴 Center 与关闭按钮同理（见 PART_CloseButton 的注记）：
+                                     Fluent 的 Button 默认把内容 Stretch 满整个按钮盒，
+                                     钉死 28×28 后 ＋ 就落在盒子左上角。 -->
                                 <Button x:Name="PART_AddButton"
                                         Grid.Column="3"
                                         Width="28" Height="28"
@@ -116,6 +119,8 @@
                                         Content="+"
                                         FontSize="16"
                                         Padding="0"
+                                        HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center"
                                         Background="Transparent"
                                         BorderThickness="0"
                                         Cursor="Arrow"
@@ -189,7 +194,15 @@
                                     <!-- Close Button
                                          尺寸走 SimTabBarItemCloseButtonSize（默认 20×20），
                                          ✕ 字形随尺寸同比放大（16 时 FontSize=10，20 时 12），
-                                         hover 背景块、命中区、字形三者天然同步。 -->
+                                         hover 背景块、命中区、字形三者天然同步。
+                                         ⚠️ 两轴 Center 是**必须的**，别当冗余删掉：Fluent 的
+                                         Button 把 Horizontal/VerticalContentAlignment 默认成
+                                         Stretch，字符串内容会被 AccessText（TextAlignment=Start）
+                                         撑满整个按钮盒 —— 20×20 的 ✕ 于是画在左上角（实测墨迹
+                                         8×9 落在 left=1/right=11/top=4/bottom=7）。自撑宽的按钮
+                                         看不出来，因为那种盒子的宽高本来就等于文字宽高，撑满与
+                                         居中恰好等价；一旦 Width/Height 被钉死，两者就分家了。
+                                         回归网：TabViewGlyphCenteringTests。 -->
                                     <Button x:Name="PART_CloseButton"
                                             Grid.Column="2"
                                             Width="{DynamicResource SimTabBarItemCloseButtonSize}"
@@ -199,6 +212,8 @@
                                             Content="✕"
                                             FontSize="12"
                                             Padding="0"
+                                            HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center"
                                             Background="Transparent"
                                             BorderThickness="0"
                                             Cursor="Arrow"
