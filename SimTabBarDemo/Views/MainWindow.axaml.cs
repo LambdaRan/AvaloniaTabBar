@@ -23,7 +23,8 @@ public partial class MainWindow : Window
             new KeyboardPage(),
             new PinnedTabPage(),
             new ContextMenuPage(),
-            new DragReorderPage()
+            new DragReorderPage(),
+            new ColorThemePage()
         };
 
         ShowScene(0);

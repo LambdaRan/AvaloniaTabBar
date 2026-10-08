@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:SimTabBar.Controls"
+             x:Class="SimTabBarDemo.Views.ColorThemePage">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
+        <TextBlock Grid.Row="0"
+                   Text="自定义颜色：选中态三色都是主题资源键，覆盖即可"
+                   FontSize="18" Margin="16,16,16,4" />
+
+        <TextBlock Grid.Row="1"
+                   TextWrapping="Wrap" FontSize="11" Opacity="0.7" Margin="16,0,16,8"
+                   Text="这三个键写进 Application.Resources 的 ThemeDictionaries，深色 / 浅色各一套 —— 运行期立即生效，用户挑完色不用重启。点右上角 🌙/☀️ 切明暗，看两套值各自生效。" />
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="16,0,16,8">
+            <TextBlock Text="选中态配色：" VerticalAlignment="Center" FontSize="12" />
+            <Button Content="VS Code 蓝" Tag="vscode" Click="OnPresetClick" />
+            <Button Content="暖纸" Tag="warm" Click="OnPresetClick" />
+            <Button Content="护眼绿" Tag="green" Click="OnPresetClick" />
+            <Button Content="恢复默认" Click="OnResetClick" />
+        </StackPanel>
+
+        <controls:TabBar Grid.Row="3" Margin="16">
+            <controls:TabBarItem Header="标签 1">
+                <TextBlock Text="被覆盖的是「选中标签」的底色 / 文字，以及顶部那条指示条；未选中标签不受影响。" Margin="16" TextWrapping="Wrap" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="标签 2">
+                <TextBlock Text="标签 2 的内容" Margin="16" />
+            </controls:TabBarItem>
+            <controls:TabBarItem Header="标签 3">
+                <TextBlock Text="标签 3 的内容" Margin="16" />
+            </controls:TabBarItem>
+        </controls:TabBar>
+    </Grid>
+</UserControl>
