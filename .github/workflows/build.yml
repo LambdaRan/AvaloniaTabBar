@@ -53,3 +53,29 @@ jobs:
         with:
           name: nuget-packages
           path: SimTabBar/bin/Release/*.nupkg
+
+  # NativeAOT 守卫：库必须能被 PublishAot 的消费方引用。
+  # 1) 库工程已开 IsAotCompatible，这里把 IL2026/IL3050/IL2070/IL2075 直接当错误；
+  # 2) 真跑一次 PublishAot，保证 clang/原生链接链路也是通的。
+  # 运行期冒烟（标签头真的渲染出来）需要有显示环境，本地跑，见 README。
+  aot-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install NativeAOT toolchain
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+
+      - name: Build library with trim/AOT analyzers as errors
+        run: >
+          dotnet build SimTabBar/SimTabBar.csproj -c Release
+          -p:WarningsAsErrors=IL2026%3BIL3050%3BIL2070%3BIL2075%3BIL3053
+
+      - name: NativeAOT publish demo
+        run: >
+          dotnet publish SimTabBarDemo/SimTabBarDemo.csproj -c Release -r linux-x64
+          -p:PublishAot=true -o artifacts/aot

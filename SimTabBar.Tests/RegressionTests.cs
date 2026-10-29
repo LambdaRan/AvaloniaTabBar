@@ -7,9 +7,11 @@ using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Templates;
 using Avalonia.Input;
+using Avalonia.Data;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using SimTabBar.Controls;
+using SimTabBar.Icons;
 using Xunit;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -378,7 +380,7 @@ public class RegressionTests
     public void CloseRequested_Item_IsDataItem_InItemsSourceMode()
     {
         var items = new ObservableCollection<Doc> { new() { Title = "one" }, new() { Title = "two" } };
-        var tabView = new TabBar { HeaderMemberPath = nameof(Doc.Title), ItemsSource = items };
+        var tabView = new TabBar { HeaderBinding = CompiledBinding.Create<Doc, string>(d => d.Title), ItemsSource = items };
         var window = new Window { Width = 800, Height = 600, Content = tabView };
         window.Show();
         tabView.SelectedIndex = 0;
@@ -398,7 +400,7 @@ public class RegressionTests
         // 同一个对象在集合里出现两次时，按值 Remove 会删掉第一个。
         var dup = new Doc { Title = "dup" };
         var items = new ObservableCollection<Doc> { dup, new() { Title = "middle" }, dup };
-        var tabView = new TabBar { HeaderMemberPath = nameof(Doc.Title), ItemsSource = items };
+        var tabView = new TabBar { HeaderBinding = CompiledBinding.Create<Doc, string>(d => d.Title), ItemsSource = items };
         var window = new Window { Width = 800, Height = 600, Content = tabView };
         window.Show();
         tabView.SelectedIndex = 1;
@@ -413,13 +415,17 @@ public class RegressionTests
         window.Close();
     }
 
-    // -------------------------------------------------- 成员路径改为真正的绑定
+    // -------------------------------------------------- 数据项 → 标签头/图标的绑定车道
 
     [AvaloniaFact]
-    public void HeaderMemberPath_TracksPropertyChanges()
+    public void HeaderBinding_TracksPropertyChanges()
     {
         var items = new ObservableCollection<Doc> { new() { Title = "one" } };
-        var tabView = new TabBar { HeaderMemberPath = nameof(Doc.Title), ItemsSource = items };
+        var tabView = new TabBar
+        {
+            HeaderBinding = CompiledBinding.Create<Doc, string>(d => d.Title),
+            ItemsSource = items,
+        };
         var window = new Window { Width = 800, Height = 600, Content = tabView };
         window.Show();
         tabView.SelectedIndex = 0;
@@ -428,39 +434,47 @@ public class RegressionTests
         Assert.Equal("one", ((TabBarItem)tabView.ContainerFromIndex(0)!).Header);
         items[0].Title = "CHANGED";
         Pump(window);
-        // 旧实现只在容器创建时反射取值一次，INotifyPropertyChanged 完全被忽略。
+        // compiled binding 跟随 INotifyPropertyChanged。
         Assert.Equal("CHANGED", ((TabBarItem)tabView.ContainerFromIndex(0)!).Header);
 
         window.Close();
     }
 
     [AvaloniaFact]
-    public void HeaderMemberPath_SupportsNestedPath()
+    public void HeaderBinding_SupportsNestedPath()
     {
         var items = new ObservableCollection<Doc> { new() { Inner = new Inner { Name = "deep" } } };
-        var tabView = new TabBar { HeaderMemberPath = "Inner.Name", ItemsSource = items };
+        var tabView = new TabBar
+        {
+            HeaderBinding = CompiledBinding.Create<Doc, string?>(d => d.Inner!.Name),
+            ItemsSource = items,
+        };
         var window = new Window { Width = 800, Height = 600, Content = tabView };
         window.Show();
         tabView.SelectedIndex = 0;
         Pump(window);
 
-        // 旧实现用 Type.GetProperty(name)，"A.B" 这种路径直接解析失败返回 null。
+        // compiled binding 支持嵌套属性路径。
         Assert.Equal("deep", ((TabBarItem)tabView.ContainerFromIndex(0)!).Header);
         window.Close();
     }
 
     [AvaloniaFact]
-    public void HeaderMemberPath_RuntimeChange_RefreshesContainers()
+    public void HeaderBinding_RuntimeChange_RefreshesContainers()
     {
         var items = new ObservableCollection<Doc> { new() { Title = "one" } };
-        var tabView = new TabBar { HeaderMemberPath = nameof(Doc.Title), ItemsSource = items };
+        var tabView = new TabBar
+        {
+            HeaderBinding = CompiledBinding.Create<Doc, string>(d => d.Title),
+            ItemsSource = items,
+        };
         var window = new Window { Width = 800, Height = 600, Content = tabView };
         window.Show();
         tabView.SelectedIndex = 0;
         Pump(window);
         Assert.Equal("one", ((TabBarItem)tabView.ContainerFromIndex(0)!).Header);
 
-        tabView.HeaderMemberPath = nameof(Doc.Alternate);
+        tabView.HeaderBinding = CompiledBinding.Create<Doc, string>(d => d.Alternate);
         Pump(window);
 
         Assert.Equal("ALT-one", ((TabBarItem)tabView.ContainerFromIndex(0)!).Header);
@@ -487,17 +501,21 @@ public class RegressionTests
     }
 
     [AvaloniaFact]
-    public void IconSourceMemberPath_NonIconValue_IsIgnored()
+    public void IconSourceBinding_DrivesIconSource()
     {
-        // 路径解析出来的不是 IconSource 时，静默取 null（与旧的 "as IconSource" 行为一致）。
-        var items = new ObservableCollection<Doc> { new() { Title = "one" } };
-        var tabView = new TabBar { IconSourceMemberPath = nameof(Doc.Title), ItemsSource = items };
+        var icon = new PathIconSource();
+        var items = new ObservableCollection<Doc> { new() { Title = "one", Icon = icon } };
+        var tabView = new TabBar
+        {
+            IconSourceBinding = CompiledBinding.Create<Doc, IconSource?>(d => d.Icon),
+            ItemsSource = items,
+        };
         var window = new Window { Width = 800, Height = 600, Content = tabView };
         window.Show();
         tabView.SelectedIndex = 0;
         Pump(window);
 
-        Assert.Null(((TabBarItem)tabView.ContainerFromIndex(0)!).IconSource);
+        Assert.Same(icon, ((TabBarItem)tabView.ContainerFromIndex(0)!).IconSource);
         window.Close();
     }
 
@@ -706,7 +724,7 @@ public class RegressionTests
     public void RemovedContainer_HasManagedStateReset_ItemsSourceMode()
     {
         var items = new ObservableCollection<Doc> { new() { Title = "a" }, new() { Title = "b" } };
-        var tabView = new TabBar { TabWidthMode = TabBarWidthMode.Compact, HeaderMemberPath = nameof(Doc.Title), ItemsSource = items };
+        var tabView = new TabBar { TabWidthMode = TabBarWidthMode.Compact, HeaderBinding = CompiledBinding.Create<Doc, string>(d => d.Title), ItemsSource = items };
         var window = new Window { Width = 800, Height = 600, Content = tabView };
         window.Show();
         tabView.SelectedIndex = 0;
@@ -877,6 +895,7 @@ public class RegressionTests
 
         public string Alternate => "ALT-" + _title;
         public Inner? Inner { get; set; }
+        public IconSource? Icon { get; set; }
         public event PropertyChangedEventHandler? PropertyChanged;
     }
 }

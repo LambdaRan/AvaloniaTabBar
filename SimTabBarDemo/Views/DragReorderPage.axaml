@@ -6,10 +6,10 @@
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="16">
         <TextBlock Grid.Row="0" Text="拖动排序：CanReorderTabs=True，按住标签水平拖动换位" FontSize="18" Margin="0,0,0,8" />
 
-        <!-- ItemsSource 模式 -->
+        <!-- ItemsSource 模式。标签头用 HeaderSelector（AOT 友好）在 code-behind 里设置；
+             字符串成员路径依赖反射元数据，NativeAOT 裁剪后会静默变空。 -->
         <controls:TabBar x:Name="SourceTabBar" Grid.Row="1" Height="140"
                           CanReorderTabs="True"
-                          HeaderMemberPath="Title"
                           TabDragStarting="OnTabDragStarting"
                           TabReorderCompleted="OnTabReorderCompleted" />
 

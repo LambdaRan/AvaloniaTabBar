@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Shapes;
 using Avalonia.Controls.Templates;
+using Avalonia.Data;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using SimTabBar.Controls;
@@ -90,7 +91,7 @@ public class TabViewHeaderTemplateTests
         var items = new ObservableCollection<SessionLikeItem>(seed);
         var tabView = new TabBar
         {
-            HeaderMemberPath = nameof(SessionLikeItem.Title),
+            HeaderBinding = CompiledBinding.Create<SessionLikeItem, string>(i => i.Title),
             ItemsSource = items,
         };
         var window = new Window { Width = 800, Height = 600, Content = tabView };
@@ -147,7 +148,7 @@ public class TabViewHeaderTemplateTests
         TestHelper.Pump(window);
 
         var container = (TabBarItem)tabView.ContainerFromIndex(0)!;
-        Assert.Equal("会话A", container.Header);   // HeaderMemberPath 仍然生效
+        Assert.Equal("会话A", container.Header);   // HeaderBinding 仍然生效
 
         container.HeaderTemplate = DotTemplate;    // 本任务直接在容器上设，TabBar 车道是 Task 2
         TestHelper.Pump(window);
@@ -260,9 +261,9 @@ public class TabViewHeaderTemplateTests
     }
 
     [AvaloniaFact]
-    public void HeaderTemplate_CoexistsWithHeaderMemberPath()
+    public void HeaderTemplate_CoexistsWithHeaderBinding()
     {
-        // 两条车道并存不冲突：HeaderMemberPath 仍驱动 Header 字符串，
+        // 两条车道并存不冲突：HeaderBinding 仍驱动 Header 字符串，
         // HeaderTemplate 独立决定视觉。
         var item = new SessionLikeItem { Title = "会话A" };
         var (tabView, window, _) = CreateItemsSourceTabBar(item);
@@ -273,7 +274,7 @@ public class TabViewHeaderTemplateTests
         var container = (TabBarItem)tabView.ContainerFromIndex(0)!;
         Assert.Equal("会话A", container.Header);
 
-        item.Title = "改名了";      // HeaderMemberPath 的绑定必须还活着
+        item.Title = "改名了";      // HeaderBinding 的绑定必须还活着
         TestHelper.Pump(window);
 
         Assert.Equal("改名了", container.Header);

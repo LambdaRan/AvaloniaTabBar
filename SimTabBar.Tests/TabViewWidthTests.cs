@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
+using Avalonia.Data;
 using Avalonia.Media;
 using SimTabBar.Controls;
 
@@ -257,7 +258,7 @@ public class TabViewWidthTests
         var tabView = new TabBar
         {
             TabWidthMode = TabBarWidthMode.Fixed,
-            HeaderMemberPath = nameof(SessionLikeItem.Title),
+            HeaderBinding = CompiledBinding.Create<SessionLikeItem, string>(i => i.Title),
             ItemsSource = items,
         };
         tabView.Resources.Add("SimTabBarItemFixedWidth", 60.0);

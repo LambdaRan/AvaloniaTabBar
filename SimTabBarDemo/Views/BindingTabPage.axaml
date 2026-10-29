@@ -6,7 +6,7 @@
              x:DataType="vm:BindingTabViewModel">
 
     <Grid RowDefinitions="Auto,Auto,*">
-        <TextBlock Grid.Row="0" Text="数据绑定：ItemsSource + HeaderMemberPath + HeaderTemplate" FontSize="18" Margin="16,16,16,8" />
+        <TextBlock Grid.Row="0" Text="数据绑定：ItemsSource + HeaderBinding + HeaderTemplate" FontSize="18" Margin="16,16,16,8" />
 
         <!-- 切换选中项的 IsModified，观察标签头绿点的亮灭。
              绿点用 #4CAF50 独立着色，不跟随标签头文字的前景（选中白 / 未选灰）。 -->
@@ -14,10 +14,15 @@
                 Command="{Binding ToggleModifiedCommand}"
                 Margin="16,0,16,8" />
 
-        <controls:TabBar Grid.Row="2"
+        <!-- HeaderBinding 对标 Avalonia 自带的 DisplayMemberBinding：[AssignBinding] +
+             [InheritDataTypeFromItems] 让这里的 {Binding Title} 按 ItemsSource 的元素类型
+             （DocumentItem）编译成 compiled binding，NativeAOT 下安全。
+             旧写法 HeaderMemberPath="Title"（0.4.0 已移除）是运行时字符串路径，
+             裁剪后会静默失效。 -->
+        <controls:TabBar x:Name="DocumentsTabBar" Grid.Row="2"
                           ItemsSource="{Binding Documents}"
+                          HeaderBinding="{Binding Title}"
                           SelectedItem="{Binding SelectedDocument}"
-                          HeaderMemberPath="Title"
                           AddTabButtonCommand="{Binding AddDocumentCommand}"
                           Margin="16">
             <controls:TabBar.HeaderTemplate>

@@ -1,0 +1,15 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:SimTabBar.Controls"
+             xmlns:tests="using:SimTabBar.Tests"
+             x:Class="SimTabBar.Tests.HeaderBindingProbe"
+             x:DataType="tests:ProbeViewModel">
+
+    <!-- 探针：验证 HeaderBinding 的 XAML 形态。
+         [AssignBinding] 让 {Binding Title} 作为 BindingBase 赋给属性；
+         [InheritDataTypeFromItems("ItemsSource")] 让它按 Items 的元素类型编译成
+         compiled binding（ProbeItem.Title）。 -->
+    <controls:TabBar x:Name="ProbeTabBar"
+                     ItemsSource="{Binding Items}"
+                     HeaderBinding="{Binding Title}" />
+</UserControl>

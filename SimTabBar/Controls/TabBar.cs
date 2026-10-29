@@ -4,10 +4,13 @@ using Avalonia.Controls.Metadata;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
+using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Metadata;
 using Avalonia.Reactive;
 using Avalonia.Threading;
+using SimTabBar.Icons;
 using System.Collections;
 using System.Collections.Specialized;
 using System.Windows.Input;
@@ -143,11 +146,27 @@ public class TabBar : SelectingItemsControl
     public static readonly StyledProperty<IDataTemplate?> HeaderTemplateProperty =
         TabBarItem.HeaderTemplateProperty.AddOwner<TabBar>();
 
-    public static readonly StyledProperty<string?> HeaderMemberPathProperty =
-        AvaloniaProperty.Register<TabBar, string?>(nameof(HeaderMemberPath));
+    public static readonly StyledProperty<BindingBase?> HeaderBindingProperty =
+        AvaloniaProperty.Register<TabBar, BindingBase?>(nameof(HeaderBinding));
 
-    public static readonly StyledProperty<string?> IconSourceMemberPathProperty =
-        AvaloniaProperty.Register<TabBar, string?>(nameof(IconSourceMemberPath));
+    public static readonly StyledProperty<BindingBase?> IconSourceBindingProperty =
+        AvaloniaProperty.Register<TabBar, BindingBase?>(nameof(IconSourceBinding));
+
+    /// <summary>
+    /// AOT 友好的标签头取值委托：参数是数据项本身，返回值即 Header。
+    /// 未设置 <see cref="HeaderBinding"/> 时生效。
+    /// 委托在编译期静态引用数据成员，NativeAOT/裁剪下无需保留反射元数据；
+    /// 值在数据项发出 INotifyPropertyChanged.PropertyChanged 时重算。
+    /// </summary>
+    public static readonly StyledProperty<Func<object, object?>?> HeaderSelectorProperty =
+        AvaloniaProperty.Register<TabBar, Func<object, object?>?>(nameof(HeaderSelector));
+
+    /// <summary>
+    /// AOT 友好的图标取值委托：参数是数据项本身，返回 IconSource。
+    /// 未设置 <see cref="IconSourceBinding"/> 时生效。
+    /// </summary>
+    public static readonly StyledProperty<Func<object, IconSource?>?> IconSourceSelectorProperty =
+        AvaloniaProperty.Register<TabBar, Func<object, IconSource?>?>(nameof(IconSourceSelector));
 
 	public TabBarWidthMode TabWidthMode {
 		get => GetValue(TabWidthModeProperty);
@@ -204,14 +223,49 @@ public class TabBar : SelectingItemsControl
 		set => SetValue(HeaderTemplateProperty, value);
 	}
 
-	public string? HeaderMemberPath {
-		get => GetValue(HeaderMemberPathProperty);
-		set => SetValue(HeaderMemberPathProperty, value);
+	/// <summary>
+	/// 标签头绑定的 <see cref="BindingBase"/>（ItemsSource 模式），对标 Avalonia 自带的
+	/// <see cref="ItemsControl.DisplayMemberBinding"/>：<c>HeaderBinding="{Binding Title}"</c>。
+	/// 配合 <see cref="InheritDataTypeFromItemsAttribute"/>，Avalonia 12 会按 ItemsSource
+	/// 的元素类型把它编译成 compiled binding，NativeAOT / 裁剪安全。
+	/// 优先级高于 <see cref="HeaderSelector"/>。
+	/// </summary>
+	[AssignBinding]
+	[InheritDataTypeFromItems(nameof(ItemsSource))]
+	public BindingBase? HeaderBinding {
+		get => GetValue(HeaderBindingProperty);
+		set => SetValue(HeaderBindingProperty, value);
 	}
 
-	public string? IconSourceMemberPath {
-		get => GetValue(IconSourceMemberPathProperty);
-		set => SetValue(IconSourceMemberPathProperty, value);
+	/// <summary>
+	/// 图标绑定的 <see cref="BindingBase"/>（ItemsSource 模式），写法同
+	/// <see cref="HeaderBinding"/>：<c>IconSourceBinding="{Binding Icon}"</c>。
+	/// 优先级高于 <see cref="IconSourceSelector"/>。
+	/// </summary>
+	[AssignBinding]
+	[InheritDataTypeFromItems(nameof(ItemsSource))]
+	public BindingBase? IconSourceBinding {
+		get => GetValue(IconSourceBindingProperty);
+		set => SetValue(IconSourceBindingProperty, value);
+	}
+
+	/// <summary>
+	/// 标签头取值委托（代码侧用法，AOT 友好）：
+	/// <c>tabBar.HeaderSelector = item =&gt; ((Doc)item).Title;</c>。
+	/// 仅在未设置 <see cref="HeaderBinding"/> 时生效。
+	/// </summary>
+	public Func<object, object?>? HeaderSelector {
+		get => GetValue(HeaderSelectorProperty);
+		set => SetValue(HeaderSelectorProperty, value);
+	}
+
+	/// <summary>
+	/// 图标取值委托（代码侧用法，AOT 友好）。仅在未设置
+	/// <see cref="IconSourceBinding"/> 时生效。
+	/// </summary>
+	public Func<object, IconSource?>? IconSourceSelector {
+		get => GetValue(IconSourceSelectorProperty);
+		set => SetValue(IconSourceSelectorProperty, value);
 	}
 
 	#endregion
@@ -272,8 +326,10 @@ public class TabBar : SelectingItemsControl
 		// 可用宽度，这由 ScrollViewer 的 Viewport 订阅统一处理 —— 那才是唯一在
 		// 布局完成后拿到正确尺寸的时机，所以这里不再挂处理器。
 		ItemsSourceProperty.Changed.AddClassHandler<TabBar>((x, _) => x.OnItemsReassigned());
-		HeaderMemberPathProperty.Changed.AddClassHandler<TabBar>((x, _) => x.RefreshContainerMemberBindings());
-		IconSourceMemberPathProperty.Changed.AddClassHandler<TabBar>((x, _) => x.RefreshContainerMemberBindings());
+		HeaderBindingProperty.Changed.AddClassHandler<TabBar>((x, _) => x.RefreshContainerItemBindings());
+		IconSourceBindingProperty.Changed.AddClassHandler<TabBar>((x, _) => x.RefreshContainerItemBindings());
+		HeaderSelectorProperty.Changed.AddClassHandler<TabBar>((x, _) => x.RefreshContainerItemBindings());
+		IconSourceSelectorProperty.Changed.AddClassHandler<TabBar>((x, _) => x.RefreshContainerItemBindings());
 		ContentTemplateProperty.Changed.AddClassHandler<TabBar>((x, _) => x.RefreshContainerContentTemplates());
 		HeaderTemplateProperty.Changed.AddClassHandler<TabBar>((x, _) => x.RefreshContainerHeaderTemplates());
 		TabItemContextMenuProperty.Changed.AddClassHandler<TabBar>((x, _) => {
@@ -379,10 +435,15 @@ public class TabBar : SelectingItemsControl
         // 附加上下文菜单
         ApplyTabContextMenu(tvi);
 
-        // ItemsSource 模式：把 Header / IconSource 绑定到数据项的成员路径上。
+        // ItemsSource 模式：把 Header / IconSource 接到数据项上（binding 优先于 selector）。
         // 直接子项模式下 item 就是容器本身，什么也不做。
         if (item != null && !ReferenceEquals(item, tvi)) {
-            tvi.ApplyMemberBindings(item, HeaderMemberPath, IconSourceMemberPath);
+            tvi.ApplyItemBindings(
+                item,
+                GetValue(HeaderBindingProperty),
+                GetValue(IconSourceBindingProperty),
+                GetValue(HeaderSelectorProperty),
+                GetValue(IconSourceSelectorProperty));
             // 为标签页内容区域设置内容模板
             if (ContentTemplate != null)
                 tvi.SetCurrentValue(ContentControl.ContentTemplateProperty, ContentTemplate);
@@ -411,7 +472,7 @@ public class TabBar : SelectingItemsControl
     private void ReleaseContainer(TabBarItem tvi)
     {
         _ownedDirectContainers.Remove(tvi);
-        tvi.ClearMemberBindings();
+        tvi.ClearItemBindings();
         tvi.ResetManagedVisualState();
         // 只清理由本控件挂上去的菜单，不要动使用方自己设置的 ContextMenu。
         if (IsOwnedContextMenu(tvi.ContextMenu))
@@ -1195,16 +1256,21 @@ public class TabBar : SelectingItemsControl
     }
 
     /// <summary>
-    /// HeaderMemberPath / IconSourceMemberPath 运行时变更后，
-    /// 重新绑定所有已实现容器。
+    /// HeaderBinding / IconSourceBinding / HeaderSelector / IconSourceSelector
+    /// 运行时变更后，重新绑定所有已实现容器。
     /// </summary>
-    private void RefreshContainerMemberBindings()
+    private void RefreshContainerItemBindings()
     {
         for (int i = 0; i < ItemCount; i++) {
             if (ContainerFromIndex(i) is not TabBarItem tvi) continue;
             var item = ItemFromContainer(tvi);
             if (item != null && !ReferenceEquals(item, tvi))
-                tvi.ApplyMemberBindings(item, HeaderMemberPath, IconSourceMemberPath);
+                tvi.ApplyItemBindings(
+                    item,
+                    GetValue(HeaderBindingProperty),
+                    GetValue(IconSourceBindingProperty),
+                    GetValue(HeaderSelectorProperty),
+                    GetValue(IconSourceSelectorProperty));
         }
     }
 

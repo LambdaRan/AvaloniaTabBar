@@ -23,6 +23,9 @@ public partial class DragReorderPage : UserControl
     {
         InitializeComponent();
         SourceTabBar.ItemsSource = _docs;
+        // 强类型委托：编译期就静态引用 DemoDoc.Title，NativeAOT / 裁剪下不需要
+        // 保留反射元数据（字符串成员路径那条车道在 0.4.0 已移除）。
+        SourceTabBar.HeaderSelector = item => ((DemoDoc)item).Title;
     }
 
     private void OnTabDragStarting(object? sender, TabBarDragStartingEventArgs e)

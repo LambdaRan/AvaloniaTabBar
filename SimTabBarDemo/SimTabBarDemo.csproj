@@ -5,6 +5,14 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Demo 默认以 NativeAOT 发布：
+           dotnet publish SimTabBarDemo -c Release
+         不指定 -r 时按当前平台出原生 exe；也可显式 -r win-x64 / linux-x64。
+         PublishAot 只在 publish 时生效（同时开启 trim/AOT 分析器，防止示例代码
+         引入反射绑定）；日常 dotnet run / dotnet build 仍是普通构建。 -->
+    <PublishAot>true</PublishAot>
+    <StripSymbols>true</StripSymbols>
   </PropertyGroup>
 
   <ItemGroup>

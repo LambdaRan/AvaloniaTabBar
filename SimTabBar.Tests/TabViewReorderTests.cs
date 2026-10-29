@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Data;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -55,7 +56,7 @@ public class TabViewReorderTests
         var tabView = new TabBar
         {
             ItemsSource = docs,
-            HeaderMemberPath = "Title",
+            HeaderBinding = CompiledBinding.Create<Doc, string>(d => d.Title),
             CanReorderTabs = true
         };
         var window = new Window { Width = 800, Height = 600, Content = tabView };

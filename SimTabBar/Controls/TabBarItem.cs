@@ -4,7 +4,6 @@ using Avalonia.Controls.Metadata;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data;
-using Avalonia.Data.Converters;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
@@ -368,40 +367,52 @@ public class TabBarItem : ContentControl
     internal void SetDragging(bool dragging) => PseudoClasses.Set(PcDragging, dragging);
 
     /// <summary>
-    /// 把 HeaderMemberPath / IconSourceMemberPath 绑定到数据项上。
-    /// 用真正的绑定而非一次性反射取值，这样数据项的属性变更（INotifyPropertyChanged）、
-    /// 嵌套路径（"A.B.C"）以及运行时修改路径都能生效。
+    /// 把 Header / IconSource 接到数据项上。两条取值车道，优先级从上到下：
+    /// <list type="number">
+    /// <item>HeaderBinding / IconSourceBinding —— <see cref="BindingBase"/>。XAML 里
+    /// <c>HeaderBinding="{Binding Title}"</c> 会被编译成 compiled binding（AOT 安全），
+    /// 这是对标 Avalonia <c>ItemsControl.DisplayMemberBinding</c> 的推荐写法；</item>
+    /// <item>HeaderSelector / IconSourceSelector —— 强类型 lambda，代码里用，AOT 友好；
+    /// 通过 <see cref="SelectorObservable{T}"/> 订阅 INotifyPropertyChanged，并以
+    /// Template 优先级推值，使用方的本地值仍可覆盖。</item>
+    /// </list>
+    /// <see cref="BindingBase"/> 车道直接交给 Avalonia 绑定引擎（优先级由绑定对象自己决定）。
     /// </summary>
-    internal void ApplyMemberBindings(object item, string? headerPath, string? iconPath)
+    internal void ApplyItemBindings(
+        object item,
+        BindingBase? headerBinding,
+        BindingBase? iconBinding,
+        Func<object, object?>? headerSelector,
+        Func<object, IconSource?>? iconSelector)
     {
         _headerBinding?.Dispose();
         _headerBinding = null;
-        if (!string.IsNullOrEmpty(headerPath)) {
-            _headerBinding = this.Bind(HeaderProperty, new Binding(headerPath)
-            {
-                Source = item,
-                Mode = BindingMode.OneWay,
-                // Template 优先级低于本地值与样式触发器，因此使用方仍可覆盖。
-                Priority = BindingPriority.Template,
-            });
+        if (headerBinding is not null) {
+            // ItemsControl 会把容器 DataContext 设为数据项，因此 XAML 里的
+            // HeaderBinding="{Binding Title}" 直接以数据项为源。
+            _headerBinding = this.Bind(HeaderProperty, headerBinding);
+        }
+        else if (headerSelector is not null) {
+            _headerBinding = this.Bind(
+                HeaderProperty,
+                new SelectorObservable<object?>(item, headerSelector),
+                BindingPriority.Template);
         }
 
         _iconBinding?.Dispose();
         _iconBinding = null;
-        if (!string.IsNullOrEmpty(iconPath)) {
-            _iconBinding = this.Bind(IconSourceProperty, new Binding(iconPath)
-            {
-                Source = item,
-                Mode = BindingMode.OneWay,
-                Priority = BindingPriority.Template,
-                // 与旧的 "value as IconSource" 行为一致：类型不符时静默取 null，
-                // 而不是抛出绑定错误。
-                Converter = AsIconSourceConverter.Instance,
-            });
+        if (iconBinding is not null) {
+            _iconBinding = this.Bind(IconSourceProperty, iconBinding);
+        }
+        else if (iconSelector is not null) {
+            _iconBinding = this.Bind(
+                IconSourceProperty,
+                new SelectorObservable<IconSource?>(item, iconSelector),
+                BindingPriority.Template);
         }
     }
 
-    internal void ClearMemberBindings()
+    internal void ClearItemBindings()
     {
         _headerBinding?.Dispose();
         _headerBinding = null;
@@ -441,15 +452,4 @@ public class TabBarItem : ContentControl
     }
 
     internal bool HasPseudoClass(string name) => PseudoClasses.Contains(name);
-
-    private sealed class AsIconSourceConverter : IValueConverter
-    {
-        internal static readonly AsIconSourceConverter Instance = new();
-
-        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-            => value as IconSource;
-
-        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-            => throw new NotSupportedException();
-    }
 }
